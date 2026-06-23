@@ -19,9 +19,12 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(bearer_sche
     token = credentials.credentials
     try:
         fa = get_firebase_auth()
-        decoded = fa.verify_id_token(token)
+        decoded = fa.verify_id_token(token, clock_skew_seconds=60)
         return decoded
-    except Exception:
+    except Exception as e:
+        import traceback
+        print(f"Token verification failed: {e}")
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token.",
