@@ -4,12 +4,478 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Topic — Sophía Study</title>
-  <meta name="description" content="Study notes and tests for this topic."/>
+  <meta name="description" content="Study notes, tests, and train mode for this topic."/>
   <link rel="stylesheet" href="/css/sophia.css"/>
   <link rel="stylesheet" href="/css/sidebar.css"/>
   <link rel="stylesheet" href="/css/components.css"/>
   <!-- Marked.js for Markdown rendering -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    /* ── Train Mode Styles ─────────────────────────────── */
+    .train-wrap {
+      padding: 2rem 0;
+    }
+
+    /* Idle / start state */
+    .train-start-card {
+      border: 2px solid var(--border);
+      padding: 3rem 2rem;
+      text-align: center;
+      background: var(--bg-surface);
+      max-width: 560px;
+      margin: 0 auto;
+    }
+    .train-start-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+    .train-start-title {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.4rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+    }
+    .train-start-desc {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+    .train-start-meta {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    .train-meta-item {
+      text-align: center;
+    }
+    .train-meta-value {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.6rem;
+      color: var(--primary-yellow);
+    }
+    .train-meta-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-top: 0.1rem;
+    }
+
+    /* Active session */
+    .train-session { display: none; }
+    .train-session.active { display: block; }
+
+    .train-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .train-progress-text {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+    .train-progress-text span {
+      color: var(--primary-yellow);
+    }
+
+    .train-progress-bar-wrap {
+      height: 4px;
+      background: var(--bg-raised);
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .train-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary-blue), var(--primary-yellow));
+      transition: width 0.4s ease;
+    }
+
+    /* Question Card */
+    .train-question-card {
+      border: 2px solid var(--border);
+      background: var(--bg-surface);
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+      animation: trainFadeIn 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .train-question-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary-blue), var(--primary-yellow));
+    }
+    @keyframes trainFadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .train-q-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+    .train-q-num {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+    }
+    .diff-badge {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.15rem 0.55rem;
+      border: 2px solid;
+    }
+    .diff-easy   { color: #22c55e; border-color: #22c55e; }
+    .diff-medium { color: var(--primary-yellow); border-color: var(--primary-yellow); }
+    .diff-hard   { color: var(--primary-red);    border-color: var(--primary-red); }
+
+    .train-q-text {
+      font-size: 1.05rem;
+      line-height: 1.65;
+      color: var(--text);
+      font-weight: 500;
+      margin-bottom: 1.75rem;
+    }
+
+    /* Options */
+    .train-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .train-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.9rem;
+      padding: 0.9rem 1.1rem;
+      border: 2px solid var(--border);
+      background: var(--bg);
+      cursor: pointer;
+      transition: border-color 0.18s, background 0.18s, transform 0.15s;
+      position: relative;
+      user-select: none;
+    }
+    .train-option:hover:not(.answered) {
+      border-color: var(--primary-yellow);
+      background: var(--bg-raised);
+      transform: translateX(3px);
+    }
+    .train-option.selected:not(.answered) {
+      border-color: var(--primary-blue);
+      background: rgba(29,53,87,0.15);
+    }
+    .train-option.correct {
+      border-color: #22c55e;
+      background: rgba(34,197,94,0.1);
+      cursor: default;
+    }
+    .train-option.wrong {
+      border-color: var(--primary-red);
+      background: rgba(230,57,70,0.1);
+      cursor: default;
+    }
+    .train-option.neutral-reveal {
+      border-color: var(--border);
+      opacity: 0.5;
+      cursor: default;
+    }
+    .train-option-letter {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.8rem;
+      min-width: 26px;
+      height: 26px;
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.18s, border-color 0.18s, color 0.18s;
+    }
+    .train-option.correct .train-option-letter {
+      background: #22c55e;
+      border-color: #22c55e;
+      color: white;
+    }
+    .train-option.wrong .train-option-letter {
+      background: var(--primary-red);
+      border-color: var(--primary-red);
+      color: white;
+    }
+    .train-option.selected:not(.answered) .train-option-letter {
+      background: var(--primary-blue);
+      border-color: var(--primary-blue);
+      color: white;
+    }
+    .train-option-text {
+      font-size: 0.92rem;
+      line-height: 1.5;
+      padding-top: 0.1rem;
+    }
+    .train-option-icon {
+      margin-left: auto;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    /* True/False buttons */
+    .train-tf-btns {
+      display: flex;
+      gap: 1rem;
+    }
+    .train-tf-btn {
+      flex: 1;
+      padding: 1rem;
+      border: 2px solid var(--border);
+      background: var(--bg);
+      cursor: pointer;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text);
+      transition: border-color 0.18s, background 0.18s, transform 0.15s;
+    }
+    .train-tf-btn:hover:not(.answered) {
+      border-color: var(--primary-yellow);
+      background: var(--bg-raised);
+      transform: translateY(-2px);
+    }
+    .train-tf-btn.correct {
+      border-color: #22c55e;
+      background: rgba(34,197,94,0.1);
+      color: #22c55e;
+      cursor: default;
+    }
+    .train-tf-btn.wrong {
+      border-color: var(--primary-red);
+      background: rgba(230,57,70,0.1);
+      color: var(--primary-red);
+      cursor: default;
+    }
+    .train-tf-btn.neutral-reveal {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    /* Fill in the blank */
+    .train-fill-wrap {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .train-fill-input {
+      flex: 1;
+      min-width: 220px;
+      padding: 0.8rem 1rem;
+      border: 2px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.95rem;
+      font-family: 'Archivo', sans-serif;
+      border-radius: 0;
+      outline: none;
+      transition: border-color 0.18s;
+    }
+    .train-fill-input:focus { border-color: var(--primary-yellow); }
+    .train-fill-input:disabled { opacity: 0.7; cursor: not-allowed; }
+    .train-fill-input.correct-input { border-color: #22c55e; background: rgba(34,197,94,0.08); }
+    .train-fill-input.wrong-input   { border-color: var(--primary-red); background: rgba(230,57,70,0.08); }
+
+    /* Feedback panel */
+    .train-feedback {
+      border: 2px solid var(--border);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.5rem;
+      display: none;
+      animation: trainFadeIn 0.25s ease;
+    }
+    .train-feedback.active { display: block; }
+    .train-feedback.correct-fb {
+      border-color: #22c55e;
+      background: rgba(34,197,94,0.07);
+    }
+    .train-feedback.wrong-fb {
+      border-color: var(--primary-red);
+      background: rgba(230,57,70,0.07);
+    }
+    .train-feedback-title {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.6rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .train-feedback.correct-fb .train-feedback-title { color: #22c55e; }
+    .train-feedback.wrong-fb   .train-feedback-title { color: var(--primary-red); }
+    .train-feedback-correct-ans {
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+      color: var(--text-muted);
+    }
+    .train-feedback-correct-ans strong { color: var(--text); }
+    .train-feedback-explanation {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      border-top: 1px solid var(--bg-raised);
+      padding-top: 0.6rem;
+      margin-top: 0.6rem;
+    }
+
+    /* Action row */
+    .train-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    /* Dots navigator */
+    .train-dots {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 1.75rem;
+    }
+    .train-dot {
+      width: 26px;
+      height: 26px;
+      border: 2px solid var(--border);
+      font-size: 0.65rem;
+      font-family: 'Archivo Black', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.18s;
+    }
+    .train-dot.current   { border-color: var(--primary-yellow); background: var(--primary-yellow); color: var(--primary-black); }
+    .train-dot.tright    { border-color: #22c55e; background: #22c55e; color: white; }
+    .train-dot.twrong    { border-color: var(--primary-red); background: var(--primary-red); color: white; }
+    .train-dot.tskipped  { border-color: var(--text-muted); background: var(--bg-raised); color: var(--text-muted); }
+
+    /* Score / Summary */
+    .train-summary { display: none; }
+    .train-summary.active { display: block; }
+    .train-score-ring {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      border: 6px solid var(--bg-raised);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 2rem;
+      position: relative;
+      background: var(--bg-surface);
+    }
+    .train-score-pct {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 2rem;
+      color: var(--primary-yellow);
+      line-height: 1;
+    }
+    .train-score-sub {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+    }
+    .train-summary-stats {
+      display: flex;
+      justify-content: center;
+      gap: 2.5rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+    .train-summary-stat {
+      text-align: center;
+    }
+    .train-summary-val {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.8rem;
+    }
+    .train-summary-lbl {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+    .train-summary-val.green { color: #22c55e; }
+    .train-summary-val.red   { color: var(--primary-red); }
+    .train-summary-val.muted { color: var(--text-muted); }
+
+    /* Review list in summary */
+    .train-review-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+    .train-review-item {
+      border: 2px solid var(--border);
+      padding: 1rem 1.25rem;
+      background: var(--bg-surface);
+    }
+    .train-review-item.rev-correct { border-color: #22c55e; }
+    .train-review-item.rev-wrong   { border-color: var(--primary-red); }
+    .train-review-item.rev-skip    { border-color: var(--text-muted); }
+    .train-review-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+    .train-review-icon {
+      font-size: 1rem;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+    .train-review-q {
+      font-size: 0.875rem;
+      line-height: 1.5;
+      color: var(--text);
+    }
+    .train-review-ans {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+      padding-left: 1.75rem;
+    }
+    .train-review-ans strong { color: var(--text); }
+
+    /* Utility */
+    .train-no-questions {
+      text-align: center;
+      padding: 4rem 2rem;
+      border: 2px dashed var(--border);
+      color: var(--text-muted);
+    }
+    .train-no-questions .big-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+  </style>
 </head>
 <body>
   <div id="sidebar-overlay" class="sidebar-overlay"></div>
@@ -24,15 +490,18 @@
 
       <main class="main-content">
         <div class="page-header">
-          <a href="/dashboard.html" style="font-size:0.8rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;">← Dashboard</a>
+          <a href="/topics.html" style="font-size:0.8rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;">← Browse Topics</a>
           <h1 id="topic-name" style="margin-top:0.5rem;">Loading…</h1>
           <p id="topic-desc" style="color:var(--text-muted);margin-top:0.25rem;"></p>
         </div>
 
         <!-- Tabs -->
         <div class="tabs" role="tablist">
-          <button class="tab-btn active" role="tab" data-tab="notes" id="tab-notes" aria-selected="true">Notes</button>
-          <button class="tab-btn" role="tab" data-tab="tests" id="tab-tests" aria-selected="false">Tests</button>
+          <button class="tab-btn active" role="tab" data-tab="notes"  id="tab-notes"  aria-selected="true">Notes</button>
+          <button class="tab-btn"        role="tab" data-tab="tests"  id="tab-tests"  aria-selected="false">Tests</button>
+          <button class="tab-btn"        role="tab" data-tab="train"  id="tab-train"  aria-selected="false">
+            ⚡ Train
+          </button>
         </div>
 
         <!-- Notes Panel -->
@@ -50,6 +519,148 @@
             <div style="color:var(--text-muted);">Loading tests…</div>
           </div>
         </div>
+
+        <!-- ── Train Panel ── -->
+        <div class="tab-panel" id="panel-train" role="tabpanel">
+          <div class="train-wrap">
+
+            <!-- Loading -->
+            <div id="train-loading" style="color:var(--text-muted);padding:2rem 0;">Loading questions…</div>
+
+            <!-- No questions -->
+            <div id="train-empty" style="display:none;">
+              <div class="train-no-questions">
+                <div class="big-icon">📭</div>
+                <div style="font-family:'Archivo Black',sans-serif;font-size:1rem;text-transform:uppercase;margin-bottom:0.5rem;">No Questions Yet</div>
+                <div style="font-size:0.875rem;">The admin hasn't added practice questions for this topic yet.</div>
+              </div>
+            </div>
+
+            <!-- Start screen -->
+            <div id="train-start" style="display:none;">
+              <div class="train-start-card">
+                <div class="train-start-icon">⚡</div>
+                <div class="train-start-title">Train Mode</div>
+                <div class="train-start-desc">
+                  Practice one question at a time and get <strong>instant feedback</strong> after each answer.
+                  No scores are saved — this is purely for learning.
+                </div>
+                <div class="train-start-meta">
+                  <div class="train-meta-item">
+                    <div class="train-meta-value" id="train-q-count">0</div>
+                    <div class="train-meta-label">Questions</div>
+                  </div>
+                  <div class="train-meta-item">
+                    <div class="train-meta-value" id="train-diff-mix">Mix</div>
+                    <div class="train-meta-label">Difficulty</div>
+                  </div>
+                  <div class="train-meta-item">
+                    <div class="train-meta-value">🔀</div>
+                    <div class="train-meta-label">Shuffled</div>
+                  </div>
+                </div>
+                <button class="btn btn-primary btn-lg" id="train-start-btn" style="width:100%;justify-content:center;">
+                  Start Training
+                </button>
+              </div>
+            </div>
+
+            <!-- Active session -->
+            <div id="train-session" class="train-session">
+
+              <div class="train-header">
+                <div class="train-progress-text">
+                  Question <span id="train-cur-num">1</span> of <span id="train-total-num">?</span>
+                </div>
+                <div style="display:flex;gap:0.75rem;align-items:center;">
+                  <span style="font-size:0.8rem;color:#22c55e;font-family:'Archivo Black',sans-serif;" id="train-correct-count">✓ 0</span>
+                  <span style="font-size:0.8rem;color:var(--primary-red);font-family:'Archivo Black',sans-serif;" id="train-wrong-count">✗ 0</span>
+                  <button class="btn btn-ghost btn-sm" id="train-quit-btn" style="font-size:0.7rem;">Quit</button>
+                </div>
+              </div>
+
+              <div class="train-progress-bar-wrap">
+                <div class="train-progress-bar" id="train-progress-bar" style="width:0%"></div>
+              </div>
+
+              <!-- Dots nav -->
+              <div class="train-dots" id="train-dots"></div>
+
+              <!-- Question card -->
+              <div class="train-question-card" id="train-q-card">
+                <div class="train-q-meta">
+                  <span class="train-q-num" id="train-q-label">Q1</span>
+                  <span class="diff-badge" id="train-diff-badge">Medium</span>
+                </div>
+                <div class="train-q-text" id="train-q-text"></div>
+                <div class="train-options" id="train-options-wrap"></div>
+              </div>
+
+              <!-- Feedback -->
+              <div class="train-feedback" id="train-feedback">
+                <div class="train-feedback-title" id="train-feedback-title"></div>
+                <div class="train-feedback-correct-ans" id="train-feedback-correct-ans"></div>
+                <div class="train-feedback-explanation" id="train-feedback-explanation"></div>
+              </div>
+
+              <!-- Actions -->
+              <div class="train-actions">
+                <button class="btn btn-ghost btn-sm" id="train-skip-btn">Skip →</button>
+                <div style="display:flex;gap:0.75rem;">
+                  <button class="btn btn-primary" id="train-submit-btn" disabled>Submit Answer</button>
+                  <button class="btn btn-blue" id="train-next-btn" style="display:none;">Next →</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Summary -->
+            <div id="train-summary" class="train-summary">
+              <div style="text-align:center;margin-bottom:2rem;">
+                <div style="font-family:'Archivo Black',sans-serif;font-size:1.3rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;">Session Complete!</div>
+                <div style="color:var(--text-muted);font-size:0.875rem;">Here's how you did. No data was saved.</div>
+              </div>
+
+              <div class="train-score-ring" id="train-score-ring">
+                <div class="train-score-pct" id="train-score-pct">0%</div>
+                <div class="train-score-sub">Score</div>
+              </div>
+
+              <div class="train-summary-stats">
+                <div class="train-summary-stat">
+                  <div class="train-summary-val green" id="sum-correct">0</div>
+                  <div class="train-summary-lbl">Correct</div>
+                </div>
+                <div class="train-summary-stat">
+                  <div class="train-summary-val red" id="sum-wrong">0</div>
+                  <div class="train-summary-lbl">Wrong</div>
+                </div>
+                <div class="train-summary-stat">
+                  <div class="train-summary-val muted" id="sum-skipped">0</div>
+                  <div class="train-summary-lbl">Skipped</div>
+                </div>
+                <div class="train-summary-stat">
+                  <div class="train-summary-val" id="sum-total" style="color:var(--text);">0</div>
+                  <div class="train-summary-lbl">Total</div>
+                </div>
+              </div>
+
+              <div style="text-align:center;margin-bottom:2rem;">
+                <button class="btn btn-primary btn-lg" id="train-restart-btn" style="margin-right:0.75rem;">Train Again 🔄</button>
+                <button class="btn btn-ghost btn-lg" id="train-back-to-start-btn">Back to Start</button>
+              </div>
+
+              <!-- Review -->
+              <div style="margin-top:2rem;">
+                <div style="font-family:'Archivo Black',sans-serif;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:1rem;border-bottom:2px solid var(--border);padding-bottom:0.75rem;">
+                  Review Answers
+                </div>
+                <div class="train-review-list" id="train-review-list"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
       </main>
     </div>
   </div>
@@ -66,9 +677,9 @@
 
     const params  = new URLSearchParams(location.search);
     const topicId = params.get('id');
-    if (!topicId) { window.location.href = '/dashboard.html'; }
+    if (!topicId) { window.location.href = '/topics.html'; }
 
-    // Load topic details
+    // ── Load topic details ──────────────────────────────────────────
     let topicName = 'Topic';
     try {
       const topics = await api.get('/topics');
@@ -82,7 +693,7 @@
       }
     } catch (_) {}
 
-    // Tab switching
+    // ── Tab switching ───────────────────────────────────────────────
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
@@ -90,10 +701,13 @@
         btn.classList.add('active');
         btn.setAttribute('aria-selected','true');
         document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+        if (btn.dataset.tab === 'train' && !trainLoaded) {
+          loadTrainQuestions();
+        }
       });
     });
 
-    // Load notes
+    // ── Load notes ──────────────────────────────────────────────────
     try {
       const notes = await api.get(`/notes?topicId=${topicId}`);
       const container = document.getElementById('notes-list');
@@ -111,7 +725,7 @@
       document.getElementById('notes-list').innerHTML = `<div class="alert alert-error">${e.message}</div>`;
     }
 
-    // Load tests for this topic
+    // ── Load tests ──────────────────────────────────────────────────
     try {
       const allTests = await api.get('/tests');
       const tests = allTests.filter(t => t.topicId === topicId || t.type === 'overall');
@@ -138,6 +752,377 @@
       }
     } catch (e) {
       document.getElementById('tests-list').innerHTML = `<div class="alert alert-error">${e.message}</div>`;
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  TRAIN MODE — No data saved, all in-memory
+    // ══════════════════════════════════════════════════════════════════
+    let trainLoaded   = false;
+    let trainQuestions = [];
+    let trainState = null;
+
+    async function loadTrainQuestions() {
+      trainLoaded = true;
+      const loadEl  = document.getElementById('train-loading');
+      const emptyEl = document.getElementById('train-empty');
+      const startEl = document.getElementById('train-start');
+      try {
+        trainQuestions = await api.get(`/questions/train?topicId=${topicId}&shuffle=true`);
+        loadEl.style.display = 'none';
+        if (!trainQuestions.length) {
+          emptyEl.style.display = 'block';
+          return;
+        }
+        // Compute difficulty spread
+        const diffs = trainQuestions.map(q => q.difficulty || 'medium');
+        const unique = [...new Set(diffs)];
+        document.getElementById('train-q-count').textContent = trainQuestions.length;
+        document.getElementById('train-diff-mix').textContent =
+          unique.length === 1 ? capitalise(unique[0]) : 'Mix';
+        startEl.style.display = 'block';
+      } catch (e) {
+        loadEl.innerHTML = `<div class="alert alert-error">${e.message}</div>`;
+      }
+    }
+
+    function capitalise(str) {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    function diffClass(d) {
+      if (!d) return 'diff-medium';
+      const v = d.toLowerCase();
+      if (v === 'easy') return 'diff-easy';
+      if (v === 'hard') return 'diff-hard';
+      return 'diff-medium';
+    }
+
+    // ── Start session ───────────────────────────────────────────────
+    document.getElementById('train-start-btn').addEventListener('click', startSession);
+    document.getElementById('train-restart-btn').addEventListener('click', () => {
+      // Re-shuffle in place
+      for (let i = trainQuestions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [trainQuestions[i], trainQuestions[j]] = [trainQuestions[j], trainQuestions[i]];
+      }
+      startSession();
+    });
+    document.getElementById('train-back-to-start-btn').addEventListener('click', () => {
+      document.getElementById('train-summary').classList.remove('active');
+      document.getElementById('train-start').style.display = 'block';
+    });
+    document.getElementById('train-quit-btn').addEventListener('click', () => {
+      if (!confirm('End this training session?')) return;
+      endSession();
+    });
+
+    function startSession() {
+      document.getElementById('train-start').style.display   = 'none';
+      document.getElementById('train-summary').classList.remove('active');
+      const session = document.getElementById('train-session');
+      session.classList.add('active');
+
+      trainState = {
+        idx:      0,
+        results:  [], // 'correct' | 'wrong' | 'skipped'
+        selected: null,
+        answered: false,
+      };
+      document.getElementById('train-total-num').textContent = trainQuestions.length;
+      renderDots();
+      renderQuestion();
+    }
+
+    function endSession() {
+      document.getElementById('train-session').classList.remove('active');
+      showSummary();
+    }
+
+    // ── Dots ────────────────────────────────────────────────────────
+    function renderDots() {
+      const wrap = document.getElementById('train-dots');
+      wrap.innerHTML = trainQuestions.map((_, i) => {
+        const r = trainState.results[i];
+        let cls = '';
+        if (i === trainState.idx) cls = 'current';
+        else if (r === 'correct') cls = 'tright';
+        else if (r === 'wrong')   cls = 'twrong';
+        else if (r === 'skipped') cls = 'tskipped';
+        return `<div class="train-dot ${cls}" title="Q${i+1}">${i+1}</div>`;
+      }).join('');
+    }
+
+    // ── Render question ─────────────────────────────────────────────
+    function renderQuestion() {
+      const q = trainQuestions[trainState.idx];
+      trainState.selected = null;
+      trainState.answered = false;
+
+      // Progress
+      const pct = Math.round((trainState.idx / trainQuestions.length) * 100);
+      document.getElementById('train-progress-bar').style.width = pct + '%';
+      document.getElementById('train-cur-num').textContent  = trainState.idx + 1;
+      document.getElementById('train-q-label').textContent  = `Q${trainState.idx + 1}`;
+
+      // Correct / wrong counters
+      const cor = trainState.results.filter(r => r === 'correct').length;
+      const wrg = trainState.results.filter(r => r === 'wrong').length;
+      document.getElementById('train-correct-count').textContent = `✓ ${cor}`;
+      document.getElementById('train-wrong-count').textContent   = `✗ ${wrg}`;
+
+      // Difficulty badge
+      const db = document.getElementById('train-diff-badge');
+      db.textContent  = capitalise(q.difficulty || 'medium');
+      db.className    = 'diff-badge ' + diffClass(q.difficulty);
+
+      // Question text
+      document.getElementById('train-q-text').textContent = q.questionText;
+
+      // Options
+      const optWrap = document.getElementById('train-options-wrap');
+      optWrap.innerHTML = '';
+
+      const qType = (q.type || 'mcq').toLowerCase();
+
+      if (qType === 'true_false' || qType === 'true/false') {
+        optWrap.innerHTML = `
+          <div class="train-tf-btns">
+            <button class="train-tf-btn" data-val="True"  id="tf-true">True</button>
+            <button class="train-tf-btn" data-val="False" id="tf-false">False</button>
+          </div>`;
+        optWrap.querySelectorAll('.train-tf-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (trainState.answered) return;
+            trainState.selected = btn.dataset.val;
+            submitAnswer();
+          });
+        });
+      } else if (qType === 'fill_in_the_blank' || qType === 'fill') {
+        optWrap.innerHTML = `
+          <div class="train-fill-wrap">
+            <input type="text" class="train-fill-input" id="train-fill-ans" placeholder="Type your answer…"/>
+            <button class="btn btn-primary" id="train-fill-submit">Submit</button>
+          </div>`;
+        const inp = document.getElementById('train-fill-ans');
+        const subBtn = document.getElementById('train-submit-btn');
+        inp.addEventListener('input', () => {
+          subBtn.disabled = !inp.value.trim();
+          trainState.selected = inp.value.trim();
+        });
+        inp.addEventListener('keydown', e => {
+          if (e.key === 'Enter' && !trainState.answered && inp.value.trim()) submitAnswer();
+        });
+        document.getElementById('train-fill-submit').addEventListener('click', () => {
+          if (!trainState.answered && inp.value.trim()) {
+            trainState.selected = inp.value.trim();
+            submitAnswer();
+          }
+        });
+        // Update submit btn state
+        document.getElementById('train-submit-btn').disabled = true;
+      } else {
+        // MCQ (default)
+        const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+        const opts = q.options || [];
+        optWrap.innerHTML = opts.map((opt, i) => `
+          <div class="train-option" data-val="${escHtml(opt)}" id="train-opt-${i}" role="button" tabindex="0">
+            <span class="train-option-letter">${letters[i] || i+1}</span>
+            <span class="train-option-text">${escHtml(opt)}</span>
+            <span class="train-option-icon"></span>
+          </div>
+        `).join('');
+        optWrap.querySelectorAll('.train-option').forEach(el => {
+          el.addEventListener('click', () => {
+            if (trainState.answered) return;
+            optWrap.querySelectorAll('.train-option').forEach(o => o.classList.remove('selected'));
+            el.classList.add('selected');
+            trainState.selected = el.dataset.val;
+            document.getElementById('train-submit-btn').disabled = false;
+          });
+          el.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') el.click();
+          });
+        });
+        document.getElementById('train-submit-btn').disabled = true;
+      }
+
+      // Hide feedback, show submit, hide next
+      hideFeedback();
+      document.getElementById('train-submit-btn').style.display = '';
+      document.getElementById('train-next-btn').style.display   = 'none';
+      document.getElementById('train-skip-btn').style.display   = '';
+
+      // Re-render dots
+      renderDots();
+    }
+
+    // ── Submit answer ───────────────────────────────────────────────
+    document.getElementById('train-submit-btn').addEventListener('click', () => {
+      if (trainState.answered || trainState.selected === null) return;
+      submitAnswer();
+    });
+
+    function submitAnswer() {
+      const q      = trainQuestions[trainState.idx];
+      const answer = trainState.selected;
+      const correct = q._correctAnswer;
+      trainState.answered = true;
+
+      const isCorrect = normalise(answer) === normalise(correct);
+      trainState.results[trainState.idx] = isCorrect ? 'correct' : 'wrong';
+
+      revealOptions(isCorrect, answer, correct, q.type);
+      showFeedback(isCorrect, correct, q.explanation || '');
+      renderDots();
+
+      document.getElementById('train-submit-btn').style.display = 'none';
+      document.getElementById('train-next-btn').style.display   = '';
+      document.getElementById('train-skip-btn').style.display   = 'none';
+
+      // Update counters
+      const cor = trainState.results.filter(r => r === 'correct').length;
+      const wrg = trainState.results.filter(r => r === 'wrong').length;
+      document.getElementById('train-correct-count').textContent = `✓ ${cor}`;
+      document.getElementById('train-wrong-count').textContent   = `✗ ${wrg}`;
+    }
+
+    function normalise(str) {
+      return (str || '').trim().toLowerCase();
+    }
+
+    function revealOptions(isCorrect, userAns, correctAns, qType) {
+      const optWrap = document.getElementById('train-options-wrap');
+      const qTypeNorm = (qType || 'mcq').toLowerCase();
+
+      if (qTypeNorm === 'true_false' || qTypeNorm === 'true/false') {
+        optWrap.querySelectorAll('.train-tf-btn').forEach(btn => {
+          btn.classList.add('answered');
+          const val = btn.dataset.val;
+          if (normalise(val) === normalise(correctAns)) {
+            btn.classList.add('correct');
+          } else if (normalise(val) === normalise(userAns)) {
+            btn.classList.add('wrong');
+          } else {
+            btn.classList.add('neutral-reveal');
+          }
+        });
+      } else if (qTypeNorm === 'fill_in_the_blank' || qTypeNorm === 'fill') {
+        const inp = document.getElementById('train-fill-ans');
+        if (inp) {
+          inp.disabled = true;
+          inp.classList.add(isCorrect ? 'correct-input' : 'wrong-input');
+        }
+        const fillSubmit = document.getElementById('train-fill-submit');
+        if (fillSubmit) fillSubmit.style.display = 'none';
+      } else {
+        optWrap.querySelectorAll('.train-option').forEach(el => {
+          el.classList.add('answered');
+          const val = el.dataset.val;
+          if (normalise(val) === normalise(correctAns)) {
+            el.classList.add('correct');
+            el.querySelector('.train-option-icon').textContent = '✓';
+          } else if (normalise(val) === normalise(userAns) && !isCorrect) {
+            el.classList.add('wrong');
+            el.querySelector('.train-option-icon').textContent = '✗';
+          } else {
+            el.classList.add('neutral-reveal');
+          }
+        });
+      }
+    }
+
+    function showFeedback(isCorrect, correctAns, explanation) {
+      const fb = document.getElementById('train-feedback');
+      fb.className = 'train-feedback active ' + (isCorrect ? 'correct-fb' : 'wrong-fb');
+      document.getElementById('train-feedback-title').innerHTML =
+        isCorrect ? '✓ &nbsp;Correct!' : '✗ &nbsp;Not quite…';
+      document.getElementById('train-feedback-correct-ans').innerHTML =
+        isCorrect
+          ? ''
+          : `Correct answer: <strong>${escHtml(correctAns)}</strong>`;
+      document.getElementById('train-feedback-explanation').textContent =
+        explanation || '';
+      document.getElementById('train-feedback-explanation').style.display =
+        explanation ? '' : 'none';
+    }
+
+    function hideFeedback() {
+      const fb = document.getElementById('train-feedback');
+      fb.className = 'train-feedback';
+    }
+
+    // ── Skip ────────────────────────────────────────────────────────
+    document.getElementById('train-skip-btn').addEventListener('click', () => {
+      if (trainState.answered) return;
+      trainState.results[trainState.idx] = 'skipped';
+      advanceQuestion();
+    });
+
+    // ── Next ────────────────────────────────────────────────────────
+    document.getElementById('train-next-btn').addEventListener('click', advanceQuestion);
+
+    function advanceQuestion() {
+      trainState.idx++;
+      if (trainState.idx >= trainQuestions.length) {
+        endSession();
+        return;
+      }
+      renderQuestion();
+    }
+
+    // ── Summary ─────────────────────────────────────────────────────
+    function showSummary() {
+      const session  = document.getElementById('train-session');
+      const summaryEl= document.getElementById('train-summary');
+      session.classList.remove('active');
+      summaryEl.classList.add('active');
+
+      const total   = trainQuestions.length;
+      const correct = trainState.results.filter(r => r === 'correct').length;
+      const wrong   = trainState.results.filter(r => r === 'wrong').length;
+      const skipped = trainState.results.filter(r => r === 'skipped').length;
+      const answered = correct + wrong;
+      const pct = answered > 0 ? Math.round((correct / answered) * 100) : 0;
+
+      document.getElementById('train-score-pct').textContent = pct + '%';
+      document.getElementById('sum-correct').textContent = correct;
+      document.getElementById('sum-wrong').textContent   = wrong;
+      document.getElementById('sum-skipped').textContent = skipped;
+      document.getElementById('sum-total').textContent   = total;
+
+      // Score ring colour
+      const ring = document.getElementById('train-score-ring');
+      if (pct >= 80) ring.style.borderColor = '#22c55e';
+      else if (pct >= 50) ring.style.borderColor = 'var(--primary-yellow)';
+      else ring.style.borderColor = 'var(--primary-red)';
+
+      // Review list
+      const reviewList = document.getElementById('train-review-list');
+      reviewList.innerHTML = trainQuestions.map((q, i) => {
+        const r = trainState.results[i] || 'skipped';
+        const icon  = r === 'correct' ? '✓' : r === 'wrong' ? '✗' : '—';
+        const cls   = r === 'correct' ? 'rev-correct' : r === 'wrong' ? 'rev-wrong' : 'rev-skip';
+        return `
+          <div class="train-review-item ${cls}">
+            <div class="train-review-header">
+              <span class="train-review-icon">${icon}</span>
+              <span class="train-review-q">Q${i+1}. ${escHtml(q.questionText)}</span>
+            </div>
+            ${r !== 'skipped' ? `
+              <div class="train-review-ans">
+                Correct answer: <strong>${escHtml(q._correctAnswer)}</strong>
+                ${q.explanation ? `<span style="margin-left:0.5rem;opacity:0.7;">— ${escHtml(q.explanation)}</span>` : ''}
+              </div>` : `<div class="train-review-ans" style="font-style:italic;">Skipped</div>`}
+          </div>`;
+      }).join('');
+    }
+
+    function escHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
     }
   </script>
 </body>

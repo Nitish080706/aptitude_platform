@@ -216,12 +216,33 @@
 
     initTheme();
 
-    // Already logged in?
+    // Already logged in? Only redirect if the cached profile matches the current Firebase user.
+    // If a different account was previously cached, clear it so the stale role isn't used.
     onAuth(async (user) => {
       if (!user) return;
-      const p = getCachedProfile();
-      if (p?.role === 'admin') window.location.href = '/admin/dashboard.html';
-      else                      window.location.href = '/dashboard.html';
+      let p = getCachedProfile();
+      if (p && p.uid !== user.uid) {
+        // Stale cache from a different account — clear it and fetch fresh profile
+        localStorage.removeItem('userProfile');
+        p = null;
+      }
+      if (!p) {
+        // No valid cache — fetch from backend
+        try {
+          const token = await user.getIdToken();
+          const res = await fetch(
+            `${window.API_BASE_URL || 'http://localhost:8000'}/auth/me`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          if (res.ok) {
+            p = await res.json();
+            setCachedProfile(p);
+          }
+        } catch (_) {}
+      }
+      if (!p) return; // couldn't get profile, stay on login page
+      if (p.role === 'admin') window.location.href = '/admin/dashboard.html';
+      else                     window.location.href = '/dashboard.html';
     });
 
     const form    = document.getElementById('login-form');
@@ -238,8 +259,10 @@
       const password = document.getElementById('password').value;
 
       try {
+        // Clear any stale cached profile before signing in as a new account
+        localStorage.removeItem('userProfile');
         await signIn(email, password);
-        // Fetch profile from backend
+        // Fetch fresh profile from backend for the newly signed-in user
         const profile = await api.get('/auth/me');
         setCachedProfile(profile);
 

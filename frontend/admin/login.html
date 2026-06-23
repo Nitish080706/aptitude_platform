@@ -115,10 +115,16 @@
 
     initTheme();
 
-    onAuth((user) => {
+    onAuth(async (user) => {
       if (!user) return;
-      const p = getCachedProfile();
-      if (p?.role === 'admin') window.location.href = '/admin/dashboard.html';
+      let p = getCachedProfile();
+      // Clear stale cache from a different account
+      if (p && p.uid !== user.uid) {
+        localStorage.removeItem('userProfile');
+        p = null;
+      }
+      if (!p) return; // no valid cache, stay on admin login page
+      if (p.role === 'admin') window.location.href = '/admin/dashboard.html';
     });
 
     const form   = document.getElementById('login-form');
@@ -132,6 +138,8 @@
       btnSub.textContent = 'Verifying…';
 
       try {
+        // Clear stale cache before signing in as a new account
+        localStorage.removeItem('userProfile');
         await signIn(
           document.getElementById('email').value.trim(),
           document.getElementById('password').value

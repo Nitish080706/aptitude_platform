@@ -169,11 +169,17 @@
 
     initTheme();
 
-    onAuth((user) => {
+    onAuth(async (user) => {
       if (!user) return;
-      const p = getCachedProfile();
-      if (p?.role === 'admin') window.location.href = '/admin/dashboard.html';
-      else                      window.location.href = '/dashboard.html';
+      let p = getCachedProfile();
+      // Clear stale cache from a different account
+      if (p && p.uid !== user.uid) {
+        localStorage.removeItem('userProfile');
+        p = null;
+      }
+      if (!p) return; // no valid session, stay on signup page
+      if (p.role === 'admin') window.location.href = '/admin/dashboard.html';
+      else                     window.location.href = '/dashboard.html';
     });
 
     const form    = document.getElementById('signup-form');

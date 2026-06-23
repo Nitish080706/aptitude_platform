@@ -6,11 +6,12 @@ current_user is a plain dict from Firestore.
 from fastapi import APIRouter, Depends, HTTPException
 from google.cloud.firestore_v1 import SERVER_TIMESTAMP
 from firebase_admin_setup import get_firestore
-from dependencies import require_admin
+from dependencies import require_admin, require_authenticated
 from models.schemas import QuestionCreate, QuestionUpdate, QuestionOut, BulkQuestionCreate, BulkImportResult
-from typing import List
+from typing import List, Dict, Any
 from datetime import datetime, timezone
 import uuid
+import random
 
 router = APIRouter(prefix="/questions", tags=["Questions"])
 
@@ -31,6 +32,52 @@ def list_questions(
         results.append(data)
     # Sort by createdAt in Python
     results.sort(key=lambda x: x.get("createdAt") or 0)
+    return results
+
+
+@router.get("/train", response_model=List[Dict[str, Any]])
+def get_train_questions(
+    topicId: str,
+    shuffle: bool = True,
+    user: dict = Depends(require_authenticated),
+):
+    """
+    Return questions for a topic **without** the correctAnswer field.
+    Pulls from BOTH 'questions' (general bank) AND 'question_for_test' collections
+    so the train session includes every question tied to this topic.
+    Intended for the Train mode — no attempt data is recorded.
+    Accessible by any authenticated user (not admin-only).
+    """
+    db = get_firestore()
+    results = []
+    seen_ids: set = set()
+
+    def extract_question(doc) -> Dict[str, Any]:
+        data = doc.to_dict()
+        return {
+            "id":             doc.id,
+            "questionText":   data.get("questionText", ""),
+            "type":           data.get("type", "mcq"),
+            "options":        data.get("options", []),
+            "explanation":    data.get("explanation", ""),
+            "difficulty":     data.get("difficulty", "medium"),
+            "_correctAnswer": data.get("correctAnswer", ""),  # revealed client-side after submit
+        }
+
+    # ── Collection 1: general question bank ──────────────────────────
+    for doc in db.collection("questions").where("topicId", "==", topicId).stream():
+        if doc.id not in seen_ids:
+            seen_ids.add(doc.id)
+            results.append(extract_question(doc))
+
+    # ── Collection 2: test-specific questions ─────────────────────────
+    for doc in db.collection("question_for_test").where("topicId", "==", topicId).stream():
+        if doc.id not in seen_ids:
+            seen_ids.add(doc.id)
+            results.append(extract_question(doc))
+
+    if shuffle:
+        random.shuffle(results)
     return results
 
 
