@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Browse Topics — Sophía Study</title>
+  <meta name="description" content="Browse, search, and filter study topics."/>
+  <link rel="stylesheet" href="/css/sophia.css"/>
+  <link rel="stylesheet" href="/css/sidebar.css"/>
+  <link rel="stylesheet" href="/css/components.css"/>
+</head>
+<body>
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+  <div class="app-shell">
+    <nav id="sidebar" class="sidebar" role="navigation" aria-label="Main navigation"></nav>
+    
+    <div>
+      <!-- Mobile topbar -->
+      <header class="topbar" role="banner">
+        <button class="hamburger" id="hamburger" aria-label="Open navigation">
+          <span></span><span></span><span></span>
+        </button>
+        <span style="font-family:'Archivo Black',sans-serif;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.1em;">Topics</span>
+        <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+      </header>
+
+      <main class="main-content" id="main">
+        <!-- Page header -->
+        <div class="page-header flex justify-between items-center">
+          <div>
+            <div class="overline">Study Hub</div>
+            <h1>Browse Topics</h1>
+          </div>
+          <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+        </div>
+
+        <!-- Search and filters -->
+        <div class="card" style="padding: 1.5rem; margin-bottom: 2rem; border: 2px solid var(--border); border-radius: 0; background-color: var(--bg-surface);">
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+            <!-- Search bar -->
+            <div style="flex: 1; min-width: 280px;">
+              <input type="text" id="search-input" class="form-input" placeholder="Search topics (e.g. algebra, sentence)..." style="width: 100%; border: 2px solid var(--border); border-radius: 0; padding: 0.6rem 1rem; background-color: var(--bg); color: var(--text);" />
+            </div>
+            
+            <!-- Category Pills -->
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;" id="category-filters">
+              <button class="btn btn-primary filter-pill" data-category="all" style="border-radius: 0; padding: 0.5rem 1rem; font-size: 0.85rem;">All</button>
+              <button class="btn btn-ghost filter-pill" data-category="verbal" style="border-radius: 0; padding: 0.5rem 1rem; font-size: 0.85rem;">Verbal Ability</button>
+              <button class="btn btn-ghost filter-pill" data-category="reasoning" style="border-radius: 0; padding: 0.5rem 1rem; font-size: 0.85rem;">Logical Reasoning</button>
+              <button class="btn btn-ghost filter-pill" data-category="quantitative" style="border-radius: 0; padding: 0.5rem 1rem; font-size: 0.85rem;">Quantitative</button>
+              <button class="btn btn-ghost filter-pill" data-category="general" style="border-radius: 0; padding: 0.5rem 1rem; font-size: 0.85rem;">General</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Topics Grid -->
+        <div class="grid grid-auto gap-2" id="topics-grid">
+          <div class="card" style="opacity:0.5;"><div class="card-title">Loading topics…</div></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initTheme } from '/js/theme.js';
+    import { requireAuth } from '/js/auth.js';
+    import { initSidebar } from '/js/sidebar.js';
+    import { api } from '/js/api.js';
+
+    initTheme();
+
+    const profile = await requireAuth();
+    initSidebar({ role: profile.role, activePage: 'topics', profile });
+
+    let allTopics = [];
+    let filterState = { search: '', category: 'all' };
+    const accentColors = ['card-red', 'card-blue', 'card-yellow'];
+
+    function getTopicCategory(topic) {
+      const name = (topic.name || '').toLowerCase();
+      const desc = (topic.description || '').toLowerCase();
+      
+      const verbalKeywords = ['verbal', 'english', 'grammar', 'vocab', 'comprehension', 'synonym', 'antonym', 'analogy', 'reading', 'sentence', 'verbal ability', 'text', 'synonyms'];
+      const reasoningKeywords = ['reasoning', 'logic', 'puzzle', 'deduction', 'syllogism', 'series', 'direction', 'blood relation', 'coding', 'decoding', 'critical thinking', 'logical reasoning', 'patterns'];
+      const quantKeywords = ['quant', 'math', 'arithmetic', 'algebra', 'geometry', 'number', 'percentage', 'ratio', 'proportion', 'interest', 'profit', 'loss', 'speed', 'distance', 'time', 'work', 'probability', 'permutation', 'combination', 'numerical', 'quantitative'];
+      
+      if (verbalKeywords.some(kw => name.includes(kw) || desc.includes(kw))) return 'verbal';
+      if (reasoningKeywords.some(kw => name.includes(kw) || desc.includes(kw))) return 'reasoning';
+      if (quantKeywords.some(kw => name.includes(kw) || desc.includes(kw))) return 'quantitative';
+      return 'general';
+    }
+
+    function getCategoryLabel(cat) {
+      switch (cat) {
+        case 'verbal': return 'Verbal Ability';
+        case 'reasoning': return 'Logical Reasoning';
+        case 'quantitative': return 'Quantitative Aptitude';
+        default: return 'General Aptitude';
+      }
+    }
+
+    function getCategoryBadgeClass(cat) {
+      switch (cat) {
+        case 'verbal': return 'badge-red';
+        case 'reasoning': return 'badge-blue';
+        case 'quantitative': return 'badge-yellow';
+        default: return 'badge-muted';
+      }
+    }
+
+    async function loadTopics() {
+      try {
+        allTopics = await api.get('/topics');
+        renderTopics();
+      } catch (e) {
+        document.getElementById('topics-grid').innerHTML = `
+          <div class="card" style="grid-column: span 3; border: 2px solid var(--border); border-radius:0;">
+            <div class="alert alert-error">${e.message}</div>
+          </div>
+        `;
+      }
+    }
+
+    function renderTopics() {
+      const grid = document.getElementById('topics-grid');
+      const filtered = allTopics.filter(t => {
+        const cat = getTopicCategory(t);
+        const nameMatch = t.name.toLowerCase().includes(filterState.search.toLowerCase());
+        const descMatch = (t.description || '').toLowerCase().includes(filterState.search.toLowerCase());
+        const searchMatch = nameMatch || descMatch;
+        const categoryMatch = filterState.category === 'all' || cat === filterState.category;
+        return searchMatch && categoryMatch;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="card" style="grid-column: span 3; padding: 4rem 2rem; text-align: center; border: 2px dashed var(--border); border-radius: 0; background-color: var(--bg-surface);">
+            <div style="font-family:'Archivo Black',sans-serif; font-size: 1.1rem; margin-bottom: 0.5rem; text-transform: uppercase;">No Topics Found</div>
+            <div style="color: var(--text-muted); font-size: 0.9rem;">Try adjusting your search query or filter category.</div>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = filtered.map((t, i) => {
+        const cat = getTopicCategory(t);
+        const badgeClass = getCategoryBadgeClass(cat);
+        const catLabel = getCategoryLabel(cat);
+        return `
+          <a href="/topic.html?id=${t.id}" class="card ${accentColors[i % 3]}" style="text-decoration:none; display:flex; flex-direction:column; justify-content:space-between; border:2px solid var(--border); border-radius:0;">
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+                <span class="badge badge-filled ${badgeClass}" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em;">
+                  ${catLabel}
+                </span>
+              </div>
+              <div class="card-title" style="margin-bottom:0.5rem; font-size:1.15rem;">${t.name}</div>
+              <div class="card-body" style="font-size:0.875rem; color:var(--text-muted); line-height:1.5;">${t.description || 'No description available.'}</div>
+            </div>
+            <div class="card-footer" style="margin-top:1.5rem; display:flex; justify-content:space-between; align-items:center;">
+              <span class="overline">View Topic</span>
+              <span class="btn-play" style="width:28px; height:28px; display:inline-block;"></span>
+            </div>
+          </a>
+        `;
+      }).join('');
+    }
+
+    // Set up search input listener
+    document.getElementById('search-input').addEventListener('input', (e) => {
+      filterState.search = e.target.value;
+      renderTopics();
+    });
+
+    // Set up category filters listeners
+    document.querySelectorAll('.filter-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-pill').forEach(b => {
+          b.classList.remove('btn-primary');
+          b.classList.add('btn-ghost');
+        });
+        btn.classList.remove('btn-ghost');
+        btn.classList.add('btn-primary');
+        filterState.category = btn.dataset.category;
+        renderTopics();
+      });
+    });
+
+    // Load actual topics from server
+    loadTopics();
+  </script>
+</body>
+</html>

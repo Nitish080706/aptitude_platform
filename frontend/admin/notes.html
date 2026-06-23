@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Manage Notes — Sophía Study Admin</title>
+  <link rel="stylesheet" href="/css/sophia.css"/>
+  <link rel="stylesheet" href="/css/sidebar.css"/>
+  <link rel="stylesheet" href="/css/components.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    .notes-layout { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; }
+    .preview-pane { background:var(--bg-surface); border:2px solid var(--border); padding:1.5rem; min-height:300px; overflow-y:auto; }
+    .preview-label { font-family:'Archivo Black',sans-serif; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-muted); margin-bottom:0.75rem; }
+    #note-content { min-height:300px; font-family:'Courier New',monospace; font-size:0.875rem; }
+    @media (max-width:800px) { .notes-layout { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+  <div class="app-shell">
+    <nav id="sidebar" class="sidebar" role="navigation"></nav>
+    <div>
+      <header class="topbar">
+        <button class="hamburger" id="hamburger" aria-label="Open navigation"><span></span><span></span><span></span></button>
+        <span style="font-family:'Archivo Black',sans-serif;font-size:0.9rem;text-transform:uppercase;">Notes</span>
+        <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+      </header>
+
+      <main class="main-content">
+        <div class="page-header flex justify-between items-center">
+          <div>
+            <div class="overline">Admin</div>
+            <h1>Manage Notes</h1>
+          </div>
+          <div style="display:flex;gap:0.75rem;align-items:center;">
+            <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+          </div>
+        </div>
+
+        <!-- Topic selector + new note button -->
+        <div class="flex gap-2 items-center" style="margin-bottom:1.5rem;flex-wrap:wrap;">
+          <div class="form-group" style="flex:1;min-width:200px;">
+            <label class="form-label" for="topic-select">Topic</label>
+            <select class="form-select" id="topic-select">
+              <option value="">— Select a topic —</option>
+            </select>
+          </div>
+          <div style="padding-top:1.4rem;">
+            <button class="btn btn-primary" id="btn-new-note" disabled>+ New Note</button>
+          </div>
+        </div>
+
+        <div id="alert-area"></div>
+
+        <!-- Notes list -->
+        <div id="notes-list" style="margin-bottom:2rem;"></div>
+
+        <!-- Editor (hidden until new/edit) -->
+        <div id="note-editor" style="display:none;">
+          <div class="divider-color" style="margin-bottom:1.5rem;"></div>
+          <h2 id="editor-title" style="font-size:1.2rem;margin-bottom:1rem;">New Note</h2>
+          <form id="note-form">
+            <input type="hidden" id="note-id"/>
+            <div class="form-group" style="margin-bottom:1rem;">
+              <label class="form-label" for="note-title">Title</label>
+              <input class="form-input" type="text" id="note-title" placeholder="Note title" required/>
+            </div>
+            <div class="notes-layout" style="margin-bottom:1rem;">
+              <div>
+                <div class="preview-label">Markdown (edit here)</div>
+                <textarea class="form-textarea" id="note-content" placeholder="Write markdown here…"></textarea>
+              </div>
+              <div>
+                <div class="preview-label">Preview</div>
+                <div class="preview-pane markdown-body" id="note-preview"></div>
+              </div>
+            </div>
+            <div id="form-error" class="form-error" style="display:none;"></div>
+            <div style="display:flex;gap:0.75rem;">
+              <button type="button" class="btn btn-ghost" id="btn-cancel-edit">Cancel</button>
+              <button type="submit" class="btn btn-primary" id="btn-save-note">Save Note</button>
+            </div>
+          </form>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initTheme } from '/js/theme.js';
+    import { requireAuth } from '/js/auth.js';
+    import { initSidebar } from '/js/sidebar.js';
+    import { api } from '/js/api.js';
+
+    initTheme();
+    const profile = await requireAuth(true);
+    initSidebar({ role: 'admin', activePage: 'notes', profile });
+
+    let selectedTopicId = null;
+    let notes = [];
+
+    // Load topics into selector
+    const topicSel = document.getElementById('topic-select');
+    try {
+      const topics = await api.get('/topics');
+      topics.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id; opt.textContent = t.name;
+        topicSel.appendChild(opt);
+      });
+    } catch (_) {}
+
+    topicSel.addEventListener('change', () => {
+      selectedTopicId = topicSel.value || null;
+      document.getElementById('btn-new-note').disabled = !selectedTopicId;
+      if (selectedTopicId) loadNotes();
+      else document.getElementById('notes-list').innerHTML = '';
+    });
+
+    async function loadNotes() {
+      try {
+        notes = await api.get(`/notes?topicId=${selectedTopicId}`);
+        renderNotes();
+      } catch (e) { showAlert(e.message); }
+    }
+
+    function renderNotes() {
+      const container = document.getElementById('notes-list');
+      if (!notes.length) {
+        container.innerHTML = `<div class="alert alert-info">No notes for this topic. Create one!</div>`;
+        return;
+      }
+      container.innerHTML = notes.map(n => `
+        <div class="card card-blue" style="margin-bottom:0.75rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;">
+          <div>
+            <div class="card-title">${n.title}</div>
+            <div class="card-body">${(n.content || '').slice(0, 80)}…</div>
+          </div>
+          <div style="display:flex;gap:0.5rem;flex-shrink:0;">
+            <button class="btn btn-ghost btn-sm" onclick="openEdit('${n.id}')">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteNote('${n.id}','${n.title}')">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function showAlert(msg, type = 'error') {
+      const area = document.getElementById('alert-area');
+      area.innerHTML = `<div class="alert alert-${type}" style="margin-bottom:1rem;">${msg}</div>`;
+      setTimeout(() => { area.innerHTML = ''; }, 4000);
+    }
+
+    // Live markdown preview
+    document.getElementById('note-content').addEventListener('input', (e) => {
+      document.getElementById('note-preview').innerHTML = marked.parse(e.target.value);
+    });
+
+    function openEditor(note = null) {
+      const editor = document.getElementById('note-editor');
+      editor.style.display = 'block';
+      document.getElementById('editor-title').textContent = note ? 'Edit Note' : 'New Note';
+      document.getElementById('note-id').value    = note?.id || '';
+      document.getElementById('note-title').value  = note?.title || '';
+      document.getElementById('note-content').value = note?.content || '';
+      document.getElementById('note-preview').innerHTML = marked.parse(note?.content || '');
+      editor.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    document.getElementById('btn-new-note').addEventListener('click', () => openEditor());
+    document.getElementById('btn-cancel-edit').addEventListener('click', () => {
+      document.getElementById('note-editor').style.display = 'none';
+      document.getElementById('note-form').reset();
+    });
+
+    window.openEdit = (id) => {
+      const n = notes.find(x => x.id === id);
+      if (n) openEditor(n);
+    };
+
+    window.deleteNote = async (id, title) => {
+      if (!confirm(`Delete note "${title}"?`)) return;
+      try {
+        await api.delete(`/notes/${id}`);
+        showAlert('Note deleted.', 'success');
+        loadNotes();
+      } catch (e) { showAlert(e.message); }
+    };
+
+    document.getElementById('note-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl  = document.getElementById('form-error');
+      const subBtn = document.getElementById('btn-save-note');
+      errEl.style.display = 'none';
+      subBtn.disabled = true;
+
+      const id   = document.getElementById('note-id').value;
+      const body = {
+        topicId: selectedTopicId,
+        title:   document.getElementById('note-title').value.trim(),
+        content: document.getElementById('note-content').value,
+      };
+
+      try {
+        if (id) await api.put(`/notes/${id}`, { title: body.title, content: body.content });
+        else    await api.post('/notes', body);
+        document.getElementById('note-editor').style.display = 'none';
+        document.getElementById('note-form').reset();
+        showAlert(id ? 'Note updated.' : 'Note created.', 'success');
+        loadNotes();
+      } catch (err) {
+        errEl.textContent = err.message; errEl.style.display = 'block';
+      } finally { subBtn.disabled = false; }
+    });
+  </script>
+</body>
+</html>

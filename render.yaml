@@ -1,0 +1,21 @@
+services:
+  # Backend FastAPI Web Service
+  - type: web
+    name: aptitude-platform-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: ADMIN_SIGNUP_KEY
+        sync: false # Set this in the Render Dashboard (e.g. your secret admin key)
+      - key: FIREBASE_CREDENTIALS_JSON
+        sync: false # Set this in the Render Dashboard (the service account JSON string)
+      - key: CORS_ORIGINS
+        value: https://aptitude-platform-frontend.onrender.com # Change this if your frontend service URL is different
+
+  # Frontend HTML/CSS/JS Static Site
+  - type: web
+    name: aptitude-platform-frontend
+    runtime: static
+    staticPublishPath: frontend

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Results — Sophía Study</title>
+  <meta name="description" content="Your test results and answer breakdown."/>
+  <link rel="stylesheet" href="/css/sophia.css"/>
+  <link rel="stylesheet" href="/css/sidebar.css"/>
+  <link rel="stylesheet" href="/css/components.css"/>
+  <style>
+    .score-hero {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 2rem;
+      align-items: center;
+      background: var(--bg-surface);
+      border: 2px solid var(--border);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .score-hero::before {
+      content: '';
+      position: absolute; top:0; left:0; right:0; height:5px;
+    }
+    .score-hero.passed::before  { background: #22c55e; }
+    .score-hero.failed::before  { background: var(--primary-red); }
+
+    .big-score {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 5rem;
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+    .big-score.passed { color: #22c55e; }
+    .big-score.failed { color: var(--primary-red); }
+
+    .result-meta { display:flex; gap:1rem; flex-wrap:wrap; margin-top:0.75rem; }
+    .result-meta-item { font-size:0.8rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; }
+    .result-meta-item strong { color:var(--text); }
+
+    .answer-item {
+      border: 2px solid var(--border);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      position: relative;
+    }
+    .answer-item.correct { border-left-color: #22c55e; border-left-width: 4px; }
+    .answer-item.wrong   { border-left-color: var(--primary-red); border-left-width: 4px; }
+
+    .answer-q-text { font-weight: 600; margin-bottom: 0.75rem; }
+    .answer-grid   { display: grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem; }
+    .answer-cell   { padding: 0.5rem 0.75rem; font-size:0.85rem; background: var(--bg-raised); }
+    .answer-cell.your-answer  { background: rgba(230,57,70,0.1); }
+    .answer-cell.your-correct { background: rgba(34,197,94,0.1); }
+    .answer-cell.correct-ans  { background: rgba(34,197,94,0.08); }
+    .explanation   { font-size:0.85rem; color:var(--text-muted); padding:0.75rem; background:var(--bg-raised); border-left:3px solid var(--primary-yellow); }
+    @media (max-width:600px) { .answer-grid { grid-template-columns:1fr; } .big-score { font-size:3.5rem; } }
+  </style>
+</head>
+<body>
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+  <div class="app-shell">
+    <nav id="sidebar" class="sidebar" role="navigation"></nav>
+    <div>
+      <header class="topbar">
+        <button class="hamburger" id="hamburger" aria-label="Open navigation"><span></span><span></span><span></span></button>
+        <span style="font-family:'Archivo Black',sans-serif;font-size:0.9rem;text-transform:uppercase;">Results</span>
+        <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+      </header>
+
+      <main class="main-content" id="main">
+        <div style="color:var(--text-muted);">Loading results…</div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initTheme } from '/js/theme.js';
+    import { requireAuth } from '/js/auth.js';
+    import { initSidebar } from '/js/sidebar.js';
+    import { api } from '/js/api.js';
+
+    initTheme();
+    const profile = await requireAuth();
+    initSidebar({ role: profile.role, activePage: '', profile });
+
+    const params    = new URLSearchParams(location.search);
+    const attemptId = params.get('attemptId');
+    if (!attemptId) { window.location.href = '/history.html'; }
+
+    const main = document.getElementById('main');
+
+    try {
+      const result = await api.get(`/attempts/${attemptId}`);
+      const passed = result.passed;
+      const pctClass = passed ? 'passed' : 'failed';
+
+      const answersHTML = (result.answers || []).map((a, i) => {
+        const isCorrect = a.isCorrect;
+        const yourClass = isCorrect ? 'your-correct' : 'your-answer';
+        return `
+          <div class="answer-item ${isCorrect ? 'correct' : 'wrong'}">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+              <span class="overline">Q${i+1}</span>
+              <span class="badge ${isCorrect ? 'badge-filled badge-green' : 'badge-filled badge-red'}">
+                ${isCorrect ? '✓ Correct' : '✗ Wrong'}
+              </span>
+            </div>
+            <div class="answer-q-text">${a.questionText}</div>
+            <div class="answer-grid">
+              <div>
+                <div class="overline" style="margin-bottom:0.25rem;">Your Answer</div>
+                <div class="answer-cell ${yourClass}">${a.selectedAnswer || '(No answer)'}</div>
+              </div>
+              ${!isCorrect ? `
+              <div>
+                <div class="overline" style="margin-bottom:0.25rem;">Correct Answer</div>
+                <div class="answer-cell correct-ans">${a.correctAnswer}</div>
+              </div>` : ''}
+            </div>
+            ${a.explanation ? `<div class="explanation">💡 ${a.explanation}</div>` : ''}
+          </div>
+        `;
+      }).join('');
+
+      const topicHref = result.topicId ? `/topic.html?id=${result.topicId}` : '/dashboard.html';
+
+      main.innerHTML = `
+        <div class="page-header">
+          <div class="overline">Test Complete</div>
+          <h1>${result.testTitle || 'Results'}</h1>
+        </div>
+
+        <!-- Score hero -->
+        <div class="score-hero ${pctClass}">
+          <div>
+            <div class="big-score ${pctClass}">${result.normalizedScore?.toFixed(0) ?? '—'}%</div>
+            <span class="badge badge-filled ${passed ? 'badge-green' : 'badge-red'}" style="margin-top:0.5rem;">
+              ${passed ? '✓ PASSED' : '✗ FAILED'}
+            </span>
+          </div>
+          <div>
+            <div class="result-meta">
+              <div class="result-meta-item">Score <strong>${result.rawScore}/${result.totalQuestions}</strong></div>
+              <div class="result-meta-item">Time <strong>${Math.round(result.timeTakenSeconds || 0)}s</strong></div>
+            </div>
+            <div style="margin-top:1.5rem;display:flex;gap:0.75rem;flex-wrap:wrap;">
+              <a href="/history.html" class="btn btn-ghost">My History</a>
+              <a href="/dashboard.html" class="btn btn-blue">← Dashboard</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Answer breakdown -->
+        <h2 style="font-size:1.2rem;margin-bottom:1rem;">Answer Breakdown</h2>
+        ${answersHTML || '<div class="alert alert-info">No answer details available.</div>'}
+      `;
+    } catch (e) {
+      main.innerHTML = `<div class="alert alert-error">${e.message}</div>`;
+    }
+  </script>
+</body>
+</html>

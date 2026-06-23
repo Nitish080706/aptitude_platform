@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Test — Sophía Study</title>
+  <meta name="description" content="Timed test with MCQ and fill-in-the-blank questions."/>
+  <link rel="stylesheet" href="/css/sophia.css"/>
+  <link rel="stylesheet" href="/css/sidebar.css"/>
+  <link rel="stylesheet" href="/css/components.css"/>
+  <style>
+    .test-layout { display: grid; grid-template-columns: 1fr 280px; gap: 2rem; }
+    .test-panel  { background: var(--bg-surface); border: 2px solid var(--border); padding: 2rem; }
+    .test-nav    { display: flex; justify-content: space-between; margin-top: 2rem; }
+    .question-text { font-size: 1.1rem; font-weight: 600; line-height: 1.5; margin-bottom: 1.5rem; }
+    .fill-input { width:100%; }
+    .timer-section { position:sticky; top:1rem; }
+    .timer-display { text-align:center; padding:1.5rem; background:var(--bg-raised); border:2px solid var(--border); margin-bottom:1rem; }
+    .timer-count  { font-family:'Archivo Black',sans-serif; font-size:3rem; letter-spacing:-0.02em; }
+    .timer-label  { font-size:0.7rem; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-muted); }
+    .timer-count.danger { color: var(--primary-red); animation: pulse-border 0.8s infinite; }
+    @media (max-width:900px) { .test-layout { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+  <div class="app-shell">
+    <nav id="sidebar" class="sidebar" role="navigation"></nav>
+    <div>
+      <header class="topbar">
+        <button class="hamburger" id="hamburger" aria-label="Open navigation"><span></span><span></span><span></span></button>
+        <span id="test-title-topbar" style="font-family:'Archivo Black',sans-serif;font-size:0.9rem;text-transform:uppercase;">Test</span>
+        <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+      </header>
+
+      <main class="main-content">
+        <!-- Timer bar at very top -->
+        <div class="timer-bar-wrap" id="timer-bar-wrap" style="margin-bottom:1.5rem;">
+          <div class="timer-bar" id="timer-bar" style="width:100%;"></div>
+        </div>
+
+        <div class="page-header flex justify-between items-center" style="margin-bottom:1.5rem;">
+          <h1 id="test-title" style="font-size:1.5rem;">Loading…</h1>
+          <span id="q-counter" class="overline"></span>
+        </div>
+
+        <div class="test-layout">
+          <!-- Question Area -->
+          <div>
+            <div class="test-panel" id="question-panel">
+              <div style="color:var(--text-muted);">Loading test…</div>
+            </div>
+            <div class="test-nav">
+              <button class="btn btn-ghost" id="btn-prev" disabled>← Previous</button>
+              <button class="btn btn-blue" id="btn-next">Next →</button>
+              <button class="btn btn-danger" id="btn-submit" style="display:none;">Submit Test</button>
+            </div>
+          </div>
+
+          <!-- Sidebar: timer + question dots -->
+          <aside class="timer-section">
+            <div class="timer-display">
+              <div class="timer-count" id="timer-count">--:--</div>
+              <div class="timer-label">Time Remaining</div>
+            </div>
+            <div style="margin-bottom:1rem;">
+              <div class="overline" style="margin-bottom:0.5rem;">Questions</div>
+              <div class="question-dots" id="q-dots"></div>
+            </div>
+            <button class="btn btn-danger w-full" id="btn-submit-side">Submit Test</button>
+          </aside>
+        </div>
+
+        <!-- Confirm submit modal -->
+        <div class="modal-overlay" id="submit-modal">
+          <div class="modal">
+            <div class="modal-header">
+              <div class="modal-title">Submit Test?</div>
+              <button class="modal-close" id="modal-cancel">✕</button>
+            </div>
+            <p id="submit-summary" style="margin-bottom:1.5rem;color:var(--text-muted);"></p>
+            <div class="modal-footer">
+              <button class="btn btn-ghost" id="modal-cancel-btn">Keep answering</button>
+              <button class="btn btn-danger" id="modal-confirm-btn">Submit now</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initTheme } from '/js/theme.js';
+    import { requireAuth } from '/js/auth.js';
+    import { initSidebar } from '/js/sidebar.js';
+    import { api } from '/js/api.js';
+
+    initTheme();
+    const profile = await requireAuth();
+    initSidebar({ role: profile.role, activePage: 'topics', profile });
+
+    const params = new URLSearchParams(location.search);
+    const testId = params.get('id');
+    if (!testId) { window.location.href = '/dashboard.html'; }
+
+    // ── State ──────────────────────────────────────────────────
+    let attemptId, startedAt, duration, timerMode;
+    let questions = [];
+    let answers   = {};   // questionId → { selectedAnswer, timeTakenSeconds }
+    let currentQ  = 0;
+    let timerInterval, questionStartTime;
+    let timeLeft;
+
+    // ── Start attempt ──────────────────────────────────────────
+    try {
+      const startResp = await api.post('/attempts/start', { testId });
+      attemptId  = startResp.attemptId;
+      startedAt  = new Date(startResp.startedAt);
+      duration   = startResp.duration;
+      timerMode  = startResp.timerMode;
+      timeLeft   = duration;
+
+      // Load test questions (no correct answers)
+      const testData = await api.get(`/tests/${testId}`);
+      questions = testData.questions || [];
+      document.getElementById('test-title').textContent = testData.title;
+      document.getElementById('test-title-topbar').textContent = testData.title;
+      document.title = `${testData.title} — Sophía Study`;
+
+      renderDots();
+      renderQuestion(0);
+      startTimer();
+    } catch (e) {
+      document.getElementById('question-panel').innerHTML =
+        `<div class="alert alert-error">${e.message}</div>`;
+    }
+
+    // ── Render question dots ───────────────────────────────────
+    function renderDots() {
+      const container = document.getElementById('q-dots');
+      container.innerHTML = questions.map((_, i) => `
+        <div class="q-dot ${i === 0 ? 'current' : ''}" id="dot-${i}" role="button" tabindex="0"
+             aria-label="Question ${i+1}">${i+1}</div>
+      `).join('');
+      container.querySelectorAll('.q-dot').forEach((dot, i) => {
+        dot.addEventListener('click', () => goTo(i));
+      });
+    }
+
+    function updateDots() {
+      questions.forEach((_, i) => {
+        const dot = document.getElementById(`dot-${i}`);
+        if (!dot) return;
+        dot.classList.remove('current', 'answered');
+        if (i === currentQ) dot.classList.add('current');
+        else if (answers[questions[i].id]) dot.classList.add('answered');
+      });
+    }
+
+    // ── Render current question ────────────────────────────────
+    function renderQuestion(index) {
+      currentQ = index;
+      questionStartTime = Date.now();
+      const q = questions[index];
+      const panel = document.getElementById('question-panel');
+      const saved = answers[q.id];
+
+      document.getElementById('q-counter').textContent = `Question ${index + 1} / ${questions.length}`;
+
+      let optionsHTML = '';
+      if (q.type === 'mcq') {
+        optionsHTML = `<div class="option-group">` +
+          (q.options || []).map(opt => `
+            <label class="option-item ${saved?.selectedAnswer === opt ? 'selected' : ''}">
+              <input type="radio" name="mcq-answer" value="${opt}"
+                     ${saved?.selectedAnswer === opt ? 'checked' : ''} />
+              ${opt}
+            </label>
+          `).join('') + `</div>`;
+      } else {
+        optionsHTML = `<input class="form-input fill-input" type="text" id="fill-answer"
+                              placeholder="Type your answer here…"
+                              value="${saved?.selectedAnswer || ''}" />`;
+      }
+
+      panel.innerHTML = `
+        <div class="overline" style="margin-bottom:0.75rem;">
+          ${q.type === 'mcq' ? 'Multiple Choice' : 'Fill in the Blank'}
+          &nbsp;·&nbsp; ${q.difficulty}
+        </div>
+        <div class="question-text">${q.questionText}</div>
+        ${optionsHTML}
+      `;
+
+      // Wire MCQ selection
+      if (q.type === 'mcq') {
+        panel.querySelectorAll('.option-item').forEach(item => {
+          item.addEventListener('click', () => {
+            const radio = item.querySelector('input[type="radio"]');
+            radio.checked = true;
+            panel.querySelectorAll('.option-item').forEach(o => o.classList.remove('selected'));
+            item.classList.add('selected');
+            saveAnswer(q.id, radio.value);
+          });
+        });
+      } else {
+        const inp = panel.querySelector('#fill-answer');
+        inp?.addEventListener('input', () => saveAnswer(q.id, inp.value));
+      }
+
+      // Nav buttons
+      document.getElementById('btn-prev').disabled = index === 0;
+      const isLast = index === questions.length - 1;
+      document.getElementById('btn-next').style.display = isLast ? 'none' : 'inline-flex';
+      document.getElementById('btn-submit').style.display = isLast ? 'inline-flex' : 'none';
+
+      updateDots();
+    }
+
+    function saveAnswer(qid, value) {
+      const elapsed = (Date.now() - questionStartTime) / 1000;
+      answers[qid] = { selectedAnswer: value, timeTakenSeconds: elapsed };
+      updateDots();
+    }
+
+    function goTo(index) {
+      if (index < 0 || index >= questions.length) return;
+      // Save fill-in answer before leaving
+      const q = questions[currentQ];
+      if (q.type === 'fill_blank') {
+        const inp = document.getElementById('fill-answer');
+        if (inp) saveAnswer(q.id, inp.value);
+      }
+      renderQuestion(index);
+    }
+
+    document.getElementById('btn-prev').addEventListener('click', () => goTo(currentQ - 1));
+    document.getElementById('btn-next').addEventListener('click', () => goTo(currentQ + 1));
+
+    // ── Timer ──────────────────────────────────────────────────
+    function startTimer() {
+      const countEl = document.getElementById('timer-count');
+      const barEl   = document.getElementById('timer-bar');
+
+      function tick() {
+        const elapsed = (Date.now() - startedAt.getTime()) / 1000;
+        timeLeft = Math.max(0, duration - elapsed);
+
+        const mins = Math.floor(timeLeft / 60);
+        const secs = Math.floor(timeLeft % 60);
+        countEl.textContent = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+
+        const pct = (timeLeft / duration) * 100;
+        barEl.style.width = pct + '%';
+
+        if (pct < 20) {
+          barEl.classList.add('warning');
+          countEl.classList.add('danger');
+        }
+
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          countEl.textContent = '00:00';
+          autoSubmit();
+        }
+      }
+
+      tick();
+      timerInterval = setInterval(tick, 1000);
+    }
+
+    // ── Submit ─────────────────────────────────────────────────
+    function openSubmitModal() {
+      const answered = Object.keys(answers).length;
+      document.getElementById('submit-summary').textContent =
+        `You've answered ${answered} of ${questions.length} questions. Unanswered questions will be marked wrong.`;
+      document.getElementById('submit-modal').classList.add('active');
+    }
+
+    document.getElementById('modal-cancel').addEventListener('click',     () => document.getElementById('submit-modal').classList.remove('active'));
+    document.getElementById('modal-cancel-btn').addEventListener('click', () => document.getElementById('submit-modal').classList.remove('active'));
+    document.getElementById('btn-submit').addEventListener('click',       openSubmitModal);
+    document.getElementById('btn-submit-side').addEventListener('click',  openSubmitModal);
+    document.getElementById('modal-confirm-btn').addEventListener('click', doSubmit);
+
+    async function autoSubmit() {
+      document.getElementById('submit-modal').classList.remove('active');
+      await doSubmit(true);
+    }
+
+    async function doSubmit(isAuto = false) {
+      clearInterval(timerInterval);
+      document.getElementById('modal-confirm-btn').disabled = true;
+      document.getElementById('modal-confirm-btn').textContent = 'Submitting…';
+
+      // Build answers array — include all questions, blank if unanswered
+      const answersArray = questions.map(q => ({
+        questionId: q.id,
+        selectedAnswer: answers[q.id]?.selectedAnswer || '',
+        timeTakenSeconds: answers[q.id]?.timeTakenSeconds || null,
+      }));
+
+      try {
+        await api.post(`/attempts/${attemptId}/submit`, { answers: answersArray });
+        window.location.href = `/results.html?attemptId=${attemptId}`;
+      } catch (e) {
+        document.getElementById('question-panel').innerHTML =
+          `<div class="alert alert-error">${e.message}</div>`;
+      }
+    }
+  </script>
+</body>
+</html>

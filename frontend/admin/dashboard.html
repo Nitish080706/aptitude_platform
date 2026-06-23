@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard — Sophía Study</title>
+  <meta name="description" content="Admin overview: users, attempts, test stats."/>
+  <link rel="stylesheet" href="/css/sophia.css"/>
+  <link rel="stylesheet" href="/css/sidebar.css"/>
+  <link rel="stylesheet" href="/css/components.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+  <div class="app-shell">
+    <nav id="sidebar" class="sidebar" role="navigation"></nav>
+    <div>
+      <header class="topbar">
+        <button class="hamburger" id="hamburger" aria-label="Open navigation"><span></span><span></span><span></span></button>
+        <span style="font-family:'Archivo Black',sans-serif;font-size:0.9rem;text-transform:uppercase;">Admin Dashboard</span>
+        <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+      </header>
+
+      <main class="main-content">
+        <div class="page-header flex justify-between items-center">
+          <div>
+            <div class="overline">Admin Panel</div>
+            <h1>Dashboard</h1>
+          </div>
+          <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+        </div>
+
+        <!-- Top stats -->
+        <div class="grid grid-4 gap-2" style="margin-bottom:2rem;" id="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="s-users">—</div>
+            <div class="stat-label">Total Users</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="s-attempts">—</div>
+            <div class="stat-label">Total Attempts</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="s-top-test" style="font-size:1rem;word-break:break-word;">—</div>
+            <div class="stat-label">Most Attempted Test</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="s-top-score">—</div>
+            <div class="stat-label">Top Test Avg Score</div>
+          </div>
+        </div>
+
+        <!-- Platform Performance Analytics Section -->
+        <section aria-labelledby="analytics-heading" style="margin-bottom: 2rem;" id="analytics-section">
+          <div class="flex justify-between items-center" style="margin-bottom: 1rem;">
+            <h2 id="analytics-heading" style="font-size: 1.3rem;">Platform Performance Analytics</h2>
+          </div>
+          <div class="grid grid-3 gap-2" id="charts-container">
+            <div class="card" style="padding: 1.25rem; min-height: 280px; display: flex; flex-direction: column; justify-content: space-between; border: 2px solid var(--border); border-radius: 0; background-color: var(--bg-surface);">
+              <h3 style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1rem; text-align: center;">Average Score per Test</h3>
+              <div style="position: relative; height: 180px; width: 100%;">
+                <canvas id="chart-avg-scores"></canvas>
+              </div>
+            </div>
+            <div class="card" style="padding: 1.25rem; min-height: 280px; display: flex; flex-direction: column; justify-content: space-between; border: 2px solid var(--border); border-radius: 0; background-color: var(--bg-surface);">
+              <h3 style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1rem; text-align: center;">Attempts per Test</h3>
+              <div style="position: relative; height: 180px; width: 100%;">
+                <canvas id="chart-test-popularity"></canvas>
+              </div>
+            </div>
+            <div class="card" style="padding: 1.25rem; min-height: 280px; display: flex; flex-direction: column; justify-content: space-between; border: 2px solid var(--border); border-radius: 0; background-color: var(--bg-surface);">
+              <h3 style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1rem; text-align: center;">Leaderboard (Top 5 Learners)</h3>
+              <div style="position: relative; height: 180px; width: 100%;">
+                <canvas id="chart-admin-leaderboard"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Test stats table -->
+        <h2 style="font-size:1.2rem;margin-bottom:1rem;">Per-Test Statistics</h2>
+        <div id="test-stats-table">
+          <div style="color:var(--text-muted);">Loading…</div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initTheme } from '/js/theme.js';
+    import { requireAuth } from '/js/auth.js';
+    import { initSidebar } from '/js/sidebar.js';
+    import { api } from '/js/api.js';
+
+    initTheme();
+    const profile = await requireAuth(true);  // admin only
+    initSidebar({ role: 'admin', activePage: 'dashboard', profile });
+
+    // Chart instances cache
+    const chartInstances = {};
+
+    function getThemeColors() {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      return {
+        text: isDark ? '#f5f3ee' : '#111111',
+        grid: isDark ? '#2e2e2e' : '#e0ddd6',
+        red: isDark ? '#ff5a5f' : '#e63946',
+        blue: isDark ? '#4d7ea8' : '#1d3557',
+        yellow: isDark ? '#ffc94d' : '#f4a300',
+        green: '#22c55e'
+      };
+    }
+
+    function initAdminCharts(testStats, lbList) {
+      const colors = getThemeColors();
+      const fontConfig = {
+        family: "'Archivo', sans-serif",
+        size: 11
+      };
+
+      // --- Chart 1: Average Score per Test ---
+      const ctxAvg = document.getElementById('chart-avg-scores')?.getContext('2d');
+      if (ctxAvg) {
+        chartInstances.avgScores = new Chart(ctxAvg, {
+          type: 'bar',
+          data: {
+            labels: testStats.map(t => t.testTitle.length > 15 ? t.testTitle.substring(0, 15) + '...' : t.testTitle),
+            datasets: [{
+              data: testStats.map(t => t.avgScore),
+              backgroundColor: colors.blue,
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  title: (context) => testStats[context[0].dataIndex].testTitle,
+                  label: (context) => `Avg Score: ${context.parsed.y.toFixed(1)}%`
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { display: false },
+                ticks: { color: colors.text, font: fontConfig }
+              },
+              y: {
+                min: 0,
+                max: 100,
+                grid: { color: colors.grid },
+                ticks: {
+                  color: colors.text,
+                  font: fontConfig,
+                  callback: (value) => value + '%'
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // --- Chart 2: Attempts per Test ---
+      const ctxPopularity = document.getElementById('chart-test-popularity')?.getContext('2d');
+      if (ctxPopularity) {
+        const palette = [colors.blue, colors.red, colors.yellow, colors.green];
+        chartInstances.popularity = new Chart(ctxPopularity, {
+          type: 'doughnut',
+          data: {
+            labels: testStats.map(t => t.testTitle),
+            datasets: [{
+              data: testStats.map(t => t.totalAttempts),
+              backgroundColor: testStats.map((_, idx) => palette[idx % palette.length]),
+              borderColor: 'transparent',
+              hoverOffset: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { color: colors.text, font: fontConfig }
+              }
+            },
+            cutout: '65%'
+          }
+        });
+      }
+
+      // --- Chart 3: Top Leaders ---
+      const ctxLeaderboard = document.getElementById('chart-admin-leaderboard')?.getContext('2d');
+      if (ctxLeaderboard) {
+        chartInstances.leaderboard = new Chart(ctxLeaderboard, {
+          type: 'bar',
+          data: {
+            labels: lbList.map(e => e.name.split(' ')[0]),
+            datasets: [{
+              data: lbList.map(e => e.totalNormalizedScore),
+              backgroundColor: colors.yellow,
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (context) => `Total Score: ${context.parsed.y.toFixed(1)}`
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { display: false },
+                ticks: { color: colors.text, font: fontConfig }
+              },
+              y: {
+                grid: { color: colors.grid },
+                ticks: { color: colors.text, font: fontConfig }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    function updateChartThemes() {
+      const colors = getThemeColors();
+      const palette = [colors.blue, colors.red, colors.yellow, colors.green];
+      
+      Object.entries(chartInstances).forEach(([name, chart]) => {
+        if (!chart) return;
+        
+        // Update scales colors
+        if (chart.options.scales) {
+          if (chart.options.scales.x) {
+            chart.options.scales.x.ticks.color = colors.text;
+            if (chart.options.scales.x.grid) chart.options.scales.x.grid.color = colors.grid;
+          }
+          if (chart.options.scales.y) {
+            chart.options.scales.y.ticks.color = colors.text;
+            if (chart.options.scales.y.grid) chart.options.scales.y.grid.color = colors.grid;
+          }
+        }
+        
+        // Update legends labels
+        if (chart.options.plugins && chart.options.plugins.legend && chart.options.plugins.legend.labels) {
+          chart.options.plugins.legend.labels.color = colors.text;
+        }
+
+        // Update dataset colors dynamically
+        if (chart.data.datasets && chart.data.datasets[0]) {
+          const dataset = chart.data.datasets[0];
+          if (name === 'avgScores') {
+            dataset.backgroundColor = colors.blue;
+          } else if (name === 'leaderboard') {
+            dataset.backgroundColor = colors.yellow;
+          } else if (name === 'popularity') {
+            dataset.backgroundColor = chart.data.labels.map((_, idx) => palette[idx % palette.length]);
+          }
+        }
+        
+        chart.update();
+      });
+    }
+
+    // Theme mutation observer
+    const themeObserver = new MutationObserver((mutations) => {
+      mutations.forEach(m => {
+        if (m.attributeName === 'data-theme') {
+          updateChartThemes();
+        }
+      });
+    });
+    themeObserver.observe(document.documentElement, { attributes: true });
+
+    async function loadAdminDashboard() {
+      try {
+        const stats = await api.get('/admin/stats');
+        const lb = await api.get('/leaderboard?limit=5');
+
+        // Populate metrics
+        document.getElementById('s-users').textContent    = stats.totalUsers;
+        document.getElementById('s-attempts').textContent = stats.totalAttempts;
+        document.getElementById('s-top-test').textContent =
+          stats.mostAttemptedTest?.testTitle || '—';
+        document.getElementById('s-top-score').textContent =
+          stats.mostAttemptedTest ? stats.mostAttemptedTest.avgScore.toFixed(1) + '%' : '—';
+
+        // Render Stats Table
+        const tableWrap = document.getElementById('test-stats-table');
+        if (!stats.testStats?.length) {
+          tableWrap.innerHTML = `<div class="alert alert-info">No test attempt data yet.</div>`;
+        } else {
+          tableWrap.innerHTML = `
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Test</th>
+                    <th>Avg Score</th>
+                    <th>Attempts</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${stats.testStats.map(t => `
+                    <tr>
+                      <td><strong>${t.testTitle}</strong></td>
+                      <td style="font-family:'Archivo Black',sans-serif;color:var(--primary-yellow);">${t.avgScore.toFixed(1)}%</td>
+                      <td>${t.totalAttempts}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+        }
+
+        // Render overall performance analytics charts
+        if (!stats.testStats?.length) {
+          document.getElementById('charts-container').innerHTML = `
+            <div class="card" style="grid-column: span 3; padding: 3rem 2rem; text-align: center; border: 2px dashed var(--border); border-radius: 0; background-color: var(--bg-surface);">
+              <div style="font-family:'Archivo Black',sans-serif; font-size: 1.1rem; margin-bottom: 0.5rem; text-transform: uppercase;">No Analytics Available Yet</div>
+              <div style="color: var(--text-muted); font-size: 0.9rem;">Overall statistics will update once students make test attempts.</div>
+            </div>
+          `;
+        } else {
+          initAdminCharts(stats.testStats, lb);
+        }
+
+      } catch (e) {
+        document.getElementById('test-stats-table').innerHTML =
+          `<div class="alert alert-error">${e.message}</div>`;
+      }
+    }
+
+    loadAdminDashboard();
+  </script>
+</body>
+</html>

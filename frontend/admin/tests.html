@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Manage Tests — Sophía Study Admin</title>
+  <link rel="stylesheet" href="/css/sophia.css"/>
+  <link rel="stylesheet" href="/css/sidebar.css"/>
+  <link rel="stylesheet" href="/css/components.css"/>
+</head>
+<body>
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+  <div class="app-shell">
+    <nav id="sidebar" class="sidebar" role="navigation"></nav>
+    <div>
+      <header class="topbar">
+        <button class="hamburger" id="hamburger" aria-label="Open navigation"><span></span><span></span><span></span></button>
+        <span style="font-family:'Archivo Black',sans-serif;font-size:0.9rem;text-transform:uppercase;">Tests</span>
+        <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+      </header>
+
+      <main class="main-content">
+        <div class="page-header flex justify-between items-center">
+          <div><div class="overline">Admin</div><h1>Manage Tests</h1></div>
+          <div style="display:flex;gap:0.75rem;align-items:center;">
+            <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+            <button class="btn btn-primary" id="btn-new-test">+ New Test</button>
+          </div>
+        </div>
+
+        <div id="alert-area"></div>
+        <div id="tests-list"><div style="color:var(--text-muted);">Loading…</div></div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Test Modal -->
+  <div class="modal-overlay" id="test-modal">
+    <div class="modal" style="max-width:680px;">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-title">New Test</div>
+        <button class="modal-close" id="modal-close-btn">✕</button>
+      </div>
+      <form class="modal-form" id="test-form">
+        <input type="hidden" id="test-id"/>
+
+        <div class="form-group">
+          <label class="form-label" for="test-title-inp">Test Title</label>
+          <input class="form-input" type="text" id="test-title-inp" required placeholder="e.g. Arrays & Sorting — Chapter 3"/>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+          <div class="form-group">
+            <label class="form-label" for="test-type">Test Type</label>
+            <select class="form-select" id="test-type">
+              <option value="topic">Topic Test</option>
+              <option value="overall">Overall (all topics)</option>
+            </select>
+          </div>
+          <div class="form-group" id="topic-field">
+            <label class="form-label" for="test-topic">Topic</label>
+            <select class="form-select" id="test-topic"><option value="">— None —</option></select>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+          <div class="form-group">
+            <label class="form-label" for="timer-mode">Timer Mode</label>
+            <select class="form-select" id="timer-mode">
+              <option value="per_test">Per Test (total time)</option>
+              <option value="per_question">Per Question</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="duration">Duration (seconds)</label>
+            <input class="form-input" type="number" id="duration" min="30" value="1800" required/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="pass-threshold">Pass Threshold (%)</label>
+          <input class="form-input" type="number" id="pass-threshold" min="0" max="100" value="60" required/>
+        </div>
+
+        <!-- Question picker -->
+        <div class="form-group">
+          <label class="form-label">Select Questions</label>
+          <div style="display:flex;gap:1.5rem;margin-bottom:0.5rem;align-items:center;">
+            <label style="display:flex;align-items:center;gap:0.25rem;cursor:pointer;font-size:0.85rem;margin:0;">
+              <input type="radio" name="q-source" value="bank" checked style="accent-color:var(--primary-blue);width:16px;height:16px;"/> Question Bank
+            </label>
+            <label style="display:flex;align-items:center;gap:0.25rem;cursor:pointer;font-size:0.85rem;margin:0;">
+              <input type="radio" name="q-source" value="test" style="accent-color:var(--primary-blue);width:16px;height:16px;"/> Test Questions
+            </label>
+          </div>
+          <div style="display:flex;gap:0.75rem;margin-bottom:0.5rem;flex-wrap:wrap;">
+            <select class="form-select" id="q-topic-filter" style="flex:1;min-width:160px;">
+              <option value="">All topics</option>
+            </select>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <label class="form-label" style="margin:0;">Random:</label>
+              <input class="form-input" type="number" id="random-n" min="1" placeholder="N" style="width:70px;"/>
+              <button type="button" class="btn btn-ghost btn-sm" id="btn-random-pick">Pick</button>
+            </div>
+          </div>
+          <div id="q-picker" style="max-height:220px;overflow-y:auto;border:2px solid var(--border);padding:0.5rem;">
+            <div style="color:var(--text-muted);font-size:0.85rem;">Select a topic above to load questions.</div>
+          </div>
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.25rem;" id="q-count-label">0 questions selected</div>
+        </div>
+
+        <div class="form-group" style="display:flex;align-items:center;gap:0.75rem;">
+          <input type="checkbox" id="is-active" style="width:18px;height:18px;accent-color:var(--primary-yellow);"/>
+          <label class="form-label" for="is-active" style="margin:0;cursor:pointer;">Active (visible to users)</label>
+        </div>
+
+        <div id="form-error" class="form-error" style="display:none;"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="modal-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="form-submit-btn">Create Test</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initTheme } from '/js/theme.js';
+    import { requireAuth } from '/js/auth.js';
+    import { initSidebar } from '/js/sidebar.js';
+    import { api } from '/js/api.js';
+
+    initTheme();
+    const profile = await requireAuth(true);
+    initSidebar({ role: 'admin', activePage: 'tests', profile });
+
+    let allTests = [], allTopics = [], allQuestions = [];
+    let selectedQIds = new Set();
+
+    // Load topics for selectors
+    try {
+      allTopics = await api.get('/topics');
+      const testTopicSel  = document.getElementById('test-topic');
+      const qTopicSel = document.getElementById('q-topic-filter');
+      allTopics.forEach(t => {
+        [testTopicSel, qTopicSel].forEach(sel => {
+          const o = document.createElement('option'); o.value=t.id; o.textContent=t.name; sel.appendChild(o);
+        });
+      });
+    } catch (_) {}
+
+    async function loadTests() {
+      try {
+        allTests = await api.get('/tests');
+        renderTests();
+      } catch (e) { showAlert(e.message); }
+    }
+
+    function renderTests() {
+      const container = document.getElementById('tests-list');
+      if (!allTests.length) { container.innerHTML = `<div class="alert alert-info">No tests yet.</div>`; return; }
+      container.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Title</th><th>Type</th><th>Questions</th><th>Duration</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${allTests.map(t => `
+                <tr>
+                  <td><strong>${t.title}</strong></td>
+                  <td><span class="badge badge-blue">${t.type}</span></td>
+                  <td>${t.questionIds?.length || 0}</td>
+                  <td>${Math.round(t.duration/60)}m / Pass ${t.passThreshold}%</td>
+                  <td>
+                    <span class="badge badge-filled ${t.isActive ? 'badge-green' : 'badge-muted'}">
+                      ${t.isActive ? 'Active' : 'Draft'}
+                    </span>
+                  </td>
+                  <td>
+                    <div style="display:flex;gap:0.5rem;">
+                      <button class="btn btn-ghost btn-sm" onclick="openEdit('${t.id}')">Edit</button>
+                      <button class="btn ${t.isActive ? 'btn-ghost' : 'btn-blue'} btn-sm" onclick="toggleActive('${t.id}')">
+                        ${t.isActive ? 'Deactivate' : 'Activate'}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function showAlert(msg, type = 'error') {
+      const area = document.getElementById('alert-area');
+      area.innerHTML = `<div class="alert alert-${type}" style="margin-bottom:1rem;">${msg}</div>`;
+      setTimeout(() => { area.innerHTML=''; }, 4000);
+    }
+
+    // Question picker
+    async function loadQuestionsForPicker() {
+      const tid = document.getElementById('q-topic-filter').value;
+      if (!tid) {
+        document.getElementById('q-picker').innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;">Select a topic above to load questions.</div>';
+        allQuestions = [];
+        return;
+      }
+      const source = document.querySelector('input[name="q-source"]:checked').value;
+      const endpoint = source === 'test' ? '/question-for-test' : '/questions';
+      try {
+        const qs = await api.get(`${endpoint}?topicId=${tid}`);
+        allQuestions = qs;
+        renderPicker(qs);
+      } catch (err) {
+        document.getElementById('q-picker').innerHTML = `<div style="color:var(--text-muted);font-size:0.85rem;">Error: ${err.message}</div>`;
+      }
+    }
+
+    document.getElementById('q-topic-filter').addEventListener('change', loadQuestionsForPicker);
+    document.querySelectorAll('input[name="q-source"]').forEach(radio => {
+      radio.addEventListener('change', loadQuestionsForPicker);
+    });
+
+    function renderPicker(qs) {
+      const picker = document.getElementById('q-picker');
+      if (!qs.length) { picker.innerHTML='<div style="color:var(--text-muted);font-size:0.85rem;">No questions for this topic.</div>'; return; }
+      picker.innerHTML = qs.map(q => `
+        <label style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.4rem 0;cursor:pointer;border-bottom:1px solid var(--bg-raised);">
+          <input type="checkbox" value="${q.id}" ${selectedQIds.has(q.id)?'checked':''} 
+                 style="margin-top:3px;accent-color:var(--primary-blue);width:16px;height:16px;"/>
+          <span style="font-size:0.85rem;"><strong>${q.type==='mcq'?'MCQ':'Fill'}</strong> · ${q.questionText}</span>
+        </label>
+      `).join('');
+      picker.querySelectorAll('input[type=checkbox]').forEach(cb => {
+        cb.addEventListener('change', () => {
+          if (cb.checked) selectedQIds.add(cb.value);
+          else selectedQIds.delete(cb.value);
+          updateQCount();
+        });
+      });
+    }
+
+    function updateQCount() {
+      document.getElementById('q-count-label').textContent = `${selectedQIds.size} question(s) selected`;
+    }
+
+    document.getElementById('btn-random-pick').addEventListener('click', () => {
+      const n = parseInt(document.getElementById('random-n').value);
+      if (!n || !allQuestions.length) return;
+      selectedQIds.clear();
+      const shuffled = [...allQuestions].sort(() => Math.random()-0.5).slice(0, n);
+      shuffled.forEach(q => selectedQIds.add(q.id));
+      renderPicker(allQuestions);
+      updateQCount();
+    });
+
+    // Modal
+    const modal = document.getElementById('test-modal');
+    function closeModal() {
+      modal.classList.remove('active');
+      document.getElementById('test-form').reset();
+      document.getElementById('test-id').value = '';
+      document.getElementById('form-error').style.display = 'none';
+      selectedQIds.clear();
+      document.getElementById('q-picker').innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;">Select a topic above to load questions.</div>';
+      updateQCount();
+      document.getElementById('modal-title').textContent = 'New Test';
+      document.getElementById('form-submit-btn').textContent = 'Create Test';
+    }
+
+    document.getElementById('btn-new-test').addEventListener('click',    () => modal.classList.add('active'));
+    document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+    document.getElementById('modal-cancel').addEventListener('click',    closeModal);
+
+    window.openEdit = async (id) => {
+      const t = allTests.find(x => x.id === id);
+      if (!t) return;
+      document.getElementById('test-id').value         = t.id;
+      document.getElementById('test-title-inp').value  = t.title;
+      document.getElementById('test-type').value       = t.type;
+      document.getElementById('test-topic').value      = t.topicId || '';
+      document.getElementById('timer-mode').value      = t.timerMode;
+      document.getElementById('duration').value        = t.duration;
+      document.getElementById('pass-threshold').value  = t.passThreshold;
+      document.getElementById('is-active').checked     = t.isActive;
+      selectedQIds = new Set(t.questionIds || []);
+      updateQCount();
+      document.getElementById('modal-title').textContent = 'Edit Test';
+      document.getElementById('form-submit-btn').textContent = 'Save Changes';
+      modal.classList.add('active');
+    };
+
+    window.toggleActive = async (id) => {
+      try {
+        await api.patch(`/tests/${id}/activate`, {});
+        showAlert('Test status updated.', 'success');
+        loadTests();
+      } catch (e) { showAlert(e.message); }
+    };
+
+    document.getElementById('test-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl  = document.getElementById('form-error');
+      const subBtn = document.getElementById('form-submit-btn');
+      errEl.style.display = 'none';
+      subBtn.disabled = true;
+
+      if (selectedQIds.size === 0) {
+        errEl.textContent = 'Select at least one question.';
+        errEl.style.display = 'block';
+        subBtn.disabled = false;
+        return;
+      }
+
+      const id   = document.getElementById('test-id').value;
+      const body = {
+        title:         document.getElementById('test-title-inp').value.trim(),
+        type:          document.getElementById('test-type').value,
+        topicId:       document.getElementById('test-topic').value || null,
+        questionIds:   [...selectedQIds],
+        timerMode:     document.getElementById('timer-mode').value,
+        duration:      parseInt(document.getElementById('duration').value),
+        passThreshold: parseFloat(document.getElementById('pass-threshold').value),
+        isActive:      document.getElementById('is-active').checked,
+      };
+
+      try {
+        if (id) await api.put(`/tests/${id}`, body);
+        else    await api.post('/tests', body);
+        closeModal();
+        showAlert(id ? 'Test updated.' : 'Test created.', 'success');
+        loadTests();
+      } catch (err) {
+        errEl.textContent = err.message; errEl.style.display = 'block';
+      } finally { subBtn.disabled = false; }
+    });
+
+    loadTests();
+  </script>
+</body>
+</html>

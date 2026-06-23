@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — Sophía Study</title>
+  <meta name="description" content="Sign in to your Sophía Study account." />
+  <link rel="stylesheet" href="/css/sophia.css" />
+  <link rel="stylesheet" href="/css/components.css" />
+  <style>
+    body {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    /* Left: form panel */
+    .auth-panel {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 3rem 4rem;
+      position: relative;
+    }
+
+    .auth-back {
+      position: absolute;
+      top: 2rem; left: 2rem;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: color var(--transition);
+    }
+    .auth-back:hover { color: var(--text); }
+
+    .auth-topbar {
+      position: absolute;
+      top: 2rem; right: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .auth-header {
+      margin-bottom: 2.5rem;
+    }
+
+    .auth-header h1 {
+      font-size: 2.2rem;
+      text-transform: uppercase;
+      letter-spacing: -0.02em;
+    }
+
+    .auth-header p {
+      color: var(--text-muted);
+      margin-top: 0.4rem;
+      font-size: 0.9rem;
+    }
+
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      max-width: 400px;
+    }
+
+    .auth-divider {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      position: relative;
+    }
+
+    .auth-divider::before, .auth-divider::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 40%;
+      height: 1px;
+      background: var(--bg-raised);
+    }
+    .auth-divider::before { left: 0; }
+    .auth-divider::after  { right: 0; }
+
+    .auth-footer {
+      margin-top: 1.5rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .auth-footer a {
+      color: var(--primary-blue);
+      font-weight: 600;
+    }
+
+    /* Right: Sophía graphic panel */
+    .auth-art {
+      background-color: var(--primary-blue);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .auth-art-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .auth-quote {
+      position: absolute;
+      bottom: 3rem;
+      left: 2rem;
+      right: 2rem;
+      z-index: 2;
+    }
+
+    .auth-quote blockquote {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.5rem;
+      color: white;
+      line-height: 1.2;
+      text-transform: uppercase;
+      letter-spacing: -0.02em;
+    }
+
+    .auth-quote cite {
+      display: block;
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.6);
+      font-style: normal;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    @media (max-width: 800px) {
+      body { grid-template-columns: 1fr; }
+      .auth-art { display: none; }
+      .auth-panel { padding: 5rem 1.5rem 2rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Form Panel -->
+  <div class="auth-panel">
+    <a href="/index.html" class="auth-back">← Back</a>
+    <div class="auth-topbar">
+      <button class="theme-toggle" aria-label="Toggle theme">☀️</button>
+    </div>
+
+    <div class="auth-header">
+      <div class="overline" style="margin-bottom:0.5rem;">Welcome back</div>
+      <h1>Login</h1>
+      <p>Enter your email and password to continue.</p>
+    </div>
+
+    <div id="auth-error" class="alert alert-error" style="display:none;"></div>
+
+    <form class="auth-form" id="login-form" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="email">Email Address</label>
+        <input class="form-input" type="email" id="email" name="email"
+               placeholder="you@example.com" autocomplete="email" required />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input class="form-input" type="password" id="password" name="password"
+               placeholder="••••••••" autocomplete="current-password" required />
+      </div>
+
+      <button type="submit" class="btn btn-blue btn-lg w-full" id="btn-submit">
+        Login
+      </button>
+    </form>
+
+    <p class="auth-footer">
+      Don't have an account? <a href="/signup.html">Sign up</a>
+    </p>
+    <p class="auth-footer" style="margin-top:0.5rem;">
+      <a href="/admin/login.html" style="color:var(--text-muted);font-size:0.8rem;">Admin login →</a>
+    </p>
+  </div>
+
+  <!-- Art Panel -->
+  <div class="auth-art" aria-hidden="true">
+    <svg viewBox="0 0 500 600" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;position:absolute;inset:0">
+      <rect width="500" height="600" fill="var(--primary-blue)"/>
+      <circle cx="400" cy="80"  r="120" fill="var(--primary-red)" opacity="0.8"/>
+      <rect x="0" y="300" width="220" height="300" fill="var(--primary-yellow)" opacity="0.7"/>
+      <rect x="180" y="0"  width="4"   height="600" fill="var(--primary-yellow)"/>
+      <polygon points="250,200 400,400 100,400" fill="#111" opacity="0.4"/>
+      <circle cx="80" cy="500" r="60" fill="white" opacity="0.1"/>
+    </svg>
+    <div class="auth-quote">
+      <blockquote>"Form follows function."</blockquote>
+      <cite>— Louis Sullivan, Sophía Principle</cite>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initTheme } from '/js/theme.js';
+    import { signIn, getCachedProfile, setCachedProfile, onAuth } from '/js/auth.js';
+    import { api } from '/js/api.js';
+
+    initTheme();
+
+    // Already logged in?
+    onAuth(async (user) => {
+      if (!user) return;
+      const p = getCachedProfile();
+      if (p?.role === 'admin') window.location.href = '/admin/dashboard.html';
+      else                      window.location.href = '/dashboard.html';
+    });
+
+    const form    = document.getElementById('login-form');
+    const errBox  = document.getElementById('auth-error');
+    const btnSub  = document.getElementById('btn-submit');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errBox.style.display = 'none';
+      btnSub.disabled = true;
+      btnSub.textContent = 'Logging in…';
+
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      try {
+        await signIn(email, password);
+        // Fetch profile from backend
+        const profile = await api.get('/auth/me');
+        setCachedProfile(profile);
+
+        if (profile.role === 'admin') window.location.href = '/admin/dashboard.html';
+        else                           window.location.href = '/dashboard.html';
+      } catch (err) {
+        errBox.textContent = err.message || 'Login failed. Check your credentials.';
+        errBox.style.display = 'block';
+        btnSub.disabled = false;
+        btnSub.textContent = 'Login';
+      }
+    });
+  </script>
+</body>
+</html>

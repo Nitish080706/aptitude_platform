@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My History — Sophía Study</title>
+  <meta name="description" content="Your test attempt history and scores."/>
+  <link rel="stylesheet" href="/css/sophia.css"/>
+  <link rel="stylesheet" href="/css/sidebar.css"/>
+  <link rel="stylesheet" href="/css/components.css"/>
+</head>
+<body>
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+  <div class="app-shell">
+    <nav id="sidebar" class="sidebar" role="navigation"></nav>
+    <div>
+      <header class="topbar">
+        <button class="hamburger" id="hamburger" aria-label="Open navigation"><span></span><span></span><span></span></button>
+        <span style="font-family:'Archivo Black',sans-serif;font-size:0.9rem;text-transform:uppercase;">My History</span>
+        <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+      </header>
+
+      <main class="main-content">
+        <div class="page-header flex justify-between items-center">
+          <div>
+            <div class="overline">Attempt Log</div>
+            <h1>My History</h1>
+          </div>
+          <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+        </div>
+
+        <div id="history-content">
+          <div style="color:var(--text-muted);">Loading history…</div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initTheme } from '/js/theme.js';
+    import { requireAuth } from '/js/auth.js';
+    import { initSidebar } from '/js/sidebar.js';
+    import { api } from '/js/api.js';
+
+    initTheme();
+    const profile = await requireAuth();
+    initSidebar({ role: profile.role, activePage: 'history', profile });
+
+    async function loadHistory() {
+      const container = document.getElementById('history-content');
+      try {
+        const attempts = await api.get('/attempts/me');
+        if (!attempts.length) {
+          container.innerHTML = `
+            <div class="alert alert-info">You haven't attempted any tests yet.</div>
+            <a href="/topics.html" class="btn btn-blue" style="margin-top:1rem;">Browse Topics →</a>
+          `;
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Test</th>
+                  <th>Score</th>
+                  <th>%</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                ${attempts.map((a, i) => {
+                  const date = a.submittedAt
+                    ? new Date(a.submittedAt).toLocaleDateString()
+                    : '—';
+                  return `
+                    <tr>
+                      <td>${i + 1}</td>
+                      <td><strong>${a.testTitle}</strong></td>
+                      <td>${a.rawScore}/${a.totalQuestions}</td>
+                      <td style="font-family:'Archivo Black',sans-serif;">${a.normalizedScore?.toFixed(1)}%</td>
+                      <td>
+                        <span class="badge badge-filled ${a.passed ? 'badge-green' : 'badge-red'}">
+                          ${a.passed ? 'Passed' : 'Failed'}
+                        </span>
+                      </td>
+                      <td>${date}</td>
+                      <td>
+                        <a href="/results.html?attemptId=${a.attemptId}" class="btn btn-ghost btn-sm">View</a>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } catch (e) {
+        container.innerHTML = `<div class="alert alert-error">${e.message}</div>`;
+      }
+    }
+
+    loadHistory();
+  </script>
+</body>
+</html>

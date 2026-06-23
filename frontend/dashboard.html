@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — Sophía Study</title>
+  <meta name="description" content="Your personal study dashboard. Browse topics, view stats, check the leaderboard." />
+  <link rel="stylesheet" href="/css/sophia.css" />
+  <link rel="stylesheet" href="/css/sidebar.css" />
+  <link rel="stylesheet" href="/css/components.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+  <div class="app-shell">
+    <nav id="sidebar" class="sidebar" role="navigation" aria-label="Main navigation"></nav>
+
+    <div>
+      <!-- Mobile topbar -->
+      <header class="topbar" role="banner">
+        <button class="hamburger" id="hamburger" aria-label="Open navigation">
+          <span></span><span></span><span></span>
+        </button>
+        <span style="font-family:'Archivo Black',sans-serif;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.1em;">Dashboard</span>
+        <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+      </header>
+
+      <main class="main-content" id="main">
+        <!-- Page header -->
+        <div class="page-header flex justify-between items-center">
+          <div>
+            <div class="overline">Welcome back</div>
+            <h1 id="greeting">Loading…</h1>
+          </div>
+          <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+        </div>
+
+        <!-- Stats strip -->
+        <div class="grid grid-3 gap-2" id="stats-strip" style="margin-bottom:2rem;">
+          <div class="stat-card">
+            <div class="stat-value" id="stat-attempts">—</div>
+            <div class="stat-label">Total Attempts</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-avg">—</div>
+            <div class="stat-label">Avg Score</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-rank">—</div>
+            <div class="stat-label">Global Rank</div>
+          </div>
+        </div>
+
+        <!-- Performance Analytics Section -->
+        <section aria-labelledby="analytics-heading" style="margin-bottom: 2rem;" id="analytics-section">
+          <div class="flex justify-between items-center" style="margin-bottom: 1rem;">
+            <h2 id="analytics-heading" style="font-size: 1.3rem;">Performance Analytics</h2>
+          </div>
+          <div class="grid grid-3 gap-2" id="charts-container">
+            <div class="card" style="padding: 1.25rem; min-height: 280px; display: flex; flex-direction: column; justify-content: space-between; border: 2px solid var(--border); border-radius: 0; background-color: var(--bg-surface);">
+              <h3 style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1rem; text-align: center;">Score Progression</h3>
+              <div style="position: relative; height: 180px; width: 100%;">
+                <canvas id="chart-scores"></canvas>
+              </div>
+            </div>
+            <div class="card" style="padding: 1.25rem; min-height: 280px; display: flex; flex-direction: column; justify-content: space-between; border: 2px solid var(--border); border-radius: 0; background-color: var(--bg-surface);">
+              <h3 style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1rem; text-align: center;">Success Rate</h3>
+              <div style="position: relative; height: 180px; width: 100%;">
+                <canvas id="chart-outcomes"></canvas>
+              </div>
+            </div>
+            <div class="card" style="padding: 1.25rem; min-height: 280px; display: flex; flex-direction: column; justify-content: space-between; border: 2px solid var(--border); border-radius: 0; background-color: var(--bg-surface);">
+              <h3 style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1rem; text-align: center;">Standing vs. Top Learners</h3>
+              <div style="position: relative; height: 180px; width: 100%;">
+                <canvas id="chart-leaderboard"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Two-column: Topics + Leaderboard widget -->
+        <div style="display:grid;grid-template-columns:1fr 300px;gap:2rem;align-items:start;" id="main-grid">
+
+          <!-- Topics section -->
+          <section aria-labelledby="topics-heading">
+            <div class="flex justify-between items-center" style="margin-bottom:1rem;">
+              <h2 id="topics-heading" style="font-size:1.3rem;">Browse Topics</h2>
+            </div>
+            <div class="grid grid-auto gap-2" id="topics-grid">
+              <div class="card" style="opacity:0.5;"><div class="card-title">Loading topics…</div></div>
+            </div>
+          </section>
+
+          <!-- Leaderboard widget -->
+          <aside aria-labelledby="lb-heading">
+            <div class="card card-yellow" style="padding:1.25rem;">
+              <h3 id="lb-heading" style="font-size:1rem;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:1rem;">
+                Top Learners
+              </h3>
+              <div id="lb-widget">
+                <div style="color:var(--text-muted);font-size:0.85rem;">Loading…</div>
+              </div>
+              <div style="margin-top:1rem;">
+                <a href="/leaderboard.html" class="btn btn-ghost btn-sm w-full">Full Leaderboard →</a>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initTheme } from '/js/theme.js';
+    import { requireAuth } from '/js/auth.js';
+    import { initSidebar } from '/js/sidebar.js';
+    import { api } from '/js/api.js';
+
+    initTheme();
+
+    const profile = await requireAuth();
+    initSidebar({ role: profile.role, activePage: 'dashboard', profile });
+
+    document.getElementById('greeting').textContent = `Hello, ${profile.name.split(' ')[0]}.`;
+
+    // Charts instances cache
+    const chartInstances = {};
+
+    function getThemeColors() {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      return {
+        text: isDark ? '#f5f3ee' : '#111111',
+        grid: isDark ? '#2e2e2e' : '#e0ddd6',
+        red: isDark ? '#ff5a5f' : '#e63946',
+        blue: isDark ? '#4d7ea8' : '#1d3557',
+        yellow: isDark ? '#ffc94d' : '#f4a300',
+        green: '#22c55e'
+      };
+    }
+
+    function initDashboardCharts(attemptsList, lbList) {
+      const colors = getThemeColors();
+      const fontConfig = {
+        family: "'Archivo', sans-serif",
+        size: 11
+      };
+
+      // --- Chart 1: Score Progression ---
+      const ctxScores = document.getElementById('chart-scores')?.getContext('2d');
+      if (ctxScores) {
+        const chronological = [...attemptsList].reverse();
+        chartInstances.scores = new Chart(ctxScores, {
+          type: 'line',
+          data: {
+            labels: chronological.map((_, i) => `Attempt ${i + 1}`),
+            datasets: [{
+              label: 'Score',
+              data: chronological.map(a => a.normalizedScore),
+              borderColor: colors.blue,
+              backgroundColor: colors.blue + '22',
+              borderWidth: 3,
+              tension: 0.1,
+              pointBackgroundColor: colors.red,
+              pointBorderColor: colors.text,
+              pointRadius: 5,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  title: (context) => {
+                    const idx = context[0].dataIndex;
+                    return chronological[idx].testTitle;
+                  },
+                  label: (context) => `Score: ${context.parsed.y.toFixed(1)}%`
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { color: colors.grid },
+                ticks: { color: colors.text, font: fontConfig }
+              },
+              y: {
+                min: 0,
+                max: 100,
+                grid: { color: colors.grid },
+                ticks: {
+                  color: colors.text,
+                  font: fontConfig,
+                  callback: (value) => value + '%'
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // --- Chart 2: Success Rate ---
+      const ctxOutcomes = document.getElementById('chart-outcomes')?.getContext('2d');
+      if (ctxOutcomes) {
+        const passedCount = attemptsList.filter(a => a.passed).length;
+        const failedCount = attemptsList.length - passedCount;
+        chartInstances.outcomes = new Chart(ctxOutcomes, {
+          type: 'doughnut',
+          data: {
+            labels: ['Passed', 'Failed'],
+            datasets: [{
+              data: [passedCount, failedCount],
+              backgroundColor: [colors.green, colors.red],
+              borderColor: 'transparent',
+              hoverOffset: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { color: colors.text, font: fontConfig }
+              }
+            },
+            cutout: '65%'
+          }
+        });
+      }
+
+      // --- Chart 3: Standing vs. Top Learners ---
+      const ctxLeaderboard = document.getElementById('chart-leaderboard')?.getContext('2d');
+      if (ctxLeaderboard) {
+        const chartLabels = [];
+        const chartData = [];
+        const chartColors = [];
+
+        const topCount = Math.min(lbList.length, 4);
+        for (let i = 0; i < topCount; i++) {
+          const entry = lbList[i];
+          chartLabels.push(entry.name.split(' ')[0]);
+          chartData.push(entry.totalNormalizedScore);
+          chartColors.push(entry.userId === profile.uid ? colors.yellow : colors.blue);
+        }
+
+        const userIdx = lbList.findIndex(e => e.userId === profile.uid);
+        if (userIdx >= topCount) {
+          chartLabels.push('You');
+          chartData.push(lbList[userIdx].totalNormalizedScore);
+          chartColors.push(colors.yellow);
+        } else if (userIdx === -1) {
+          chartLabels.push('You');
+          chartData.push(0);
+          chartColors.push(colors.yellow);
+        } else if (lbList.length > topCount && userIdx < topCount) {
+          const entry = lbList[topCount];
+          chartLabels.push(entry.name.split(' ')[0]);
+          chartData.push(entry.totalNormalizedScore);
+          chartColors.push(entry.userId === profile.uid ? colors.yellow : colors.blue);
+        }
+
+        chartInstances.leaderboard = new Chart(ctxLeaderboard, {
+          type: 'bar',
+          data: {
+            labels: chartLabels,
+            datasets: [{
+              data: chartData,
+              backgroundColor: chartColors,
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false }
+            },
+            scales: {
+              x: {
+                grid: { display: false },
+                ticks: { color: colors.text, font: fontConfig }
+              },
+              y: {
+                grid: { color: colors.grid },
+                ticks: { color: colors.text, font: fontConfig }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    function updateChartThemes() {
+      const colors = getThemeColors();
+      Object.values(chartInstances).forEach(chart => {
+        if (!chart) return;
+        if (chart.options.scales) {
+          if (chart.options.scales.x) {
+            chart.options.scales.x.ticks.color = colors.text;
+            if (chart.options.scales.x.grid) chart.options.scales.x.grid.color = colors.grid;
+          }
+          if (chart.options.scales.y) {
+            chart.options.scales.y.ticks.color = colors.text;
+            if (chart.options.scales.y.grid) chart.options.scales.y.grid.color = colors.grid;
+          }
+        }
+        if (chart.options.plugins && chart.options.plugins.legend && chart.options.plugins.legend.labels) {
+          chart.options.plugins.legend.labels.color = colors.text;
+        }
+        chart.update();
+      });
+    }
+
+    // Theme mutation observer
+    const themeObserver = new MutationObserver((mutations) => {
+      mutations.forEach(m => {
+        if (m.attributeName === 'data-theme') {
+          updateChartThemes();
+        }
+      });
+    });
+    themeObserver.observe(document.documentElement, { attributes: true });
+
+    // Load dashboard data
+    async function loadDashboard() {
+      // 1. Load Topics
+      const accentColors = ['card-red', 'card-blue', 'card-yellow'];
+      try {
+        const topics = await api.get('/topics');
+        const grid = document.getElementById('topics-grid');
+        if (topics.length === 0) {
+          grid.innerHTML = `<div class="card"><div class="card-body">No topics yet. Check back soon!</div></div>`;
+        } else {
+          grid.innerHTML = topics.map((t, i) => `
+            <a href="/topic.html?id=${t.id}" class="card ${accentColors[i % 3]}" style="text-decoration:none;display:block;">
+              <div class="card-title">${t.name}</div>
+              <div class="card-body">${t.description || 'No description.'}</div>
+              <div class="card-footer">
+                <span class="overline">View Topic</span>
+                <span class="btn-play" style="width:28px;height:28px;display:inline-block;"></span>
+              </div>
+            </a>
+          `).join('');
+        }
+      } catch (e) {
+        document.getElementById('topics-grid').innerHTML =
+          `<div class="card"><div class="alert alert-error">${e.message}</div></div>`;
+      }
+
+      // 2. Load Attempts & Leaderboard
+      let attempts = [];
+      let lb = [];
+
+      try {
+        attempts = await api.get('/attempts/me');
+        const total = attempts.length;
+        const avg = total ? (attempts.reduce((s, a) => s + a.normalizedScore, 0) / total).toFixed(1) : '—';
+        document.getElementById('stat-attempts').textContent = total;
+        document.getElementById('stat-avg').textContent = avg ? `${avg}%` : '—';
+      } catch (e) {
+        console.error("Failed to load attempts:", e);
+      }
+
+      try {
+        lb = await api.get('/leaderboard?limit=5');
+        const userRow = lb.find(e => e.userId === profile.uid);
+        if (userRow) document.getElementById('stat-rank').textContent = `#${userRow.rank}`;
+
+        const lbWidget = document.getElementById('lb-widget');
+        lbWidget.innerHTML = lb.map(entry => `
+          <div style="display:flex;align-items:center;gap:0.75rem;padding:0.4rem 0;border-bottom:1px solid var(--bg-raised);">
+            <div class="rank-badge ${entry.rank <= 3 ? 'rank-' + entry.rank : ''}">${entry.rank}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:600;font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                ${entry.name}
+              </div>
+              <div style="font-size:0.7rem;color:var(--text-muted);">@${entry.username}</div>
+            </div>
+            <div style="font-family:'Archivo Black',sans-serif;font-size:0.9rem;color:var(--primary-yellow);">
+              ${entry.totalNormalizedScore.toFixed(0)}
+            </div>
+          </div>
+        `).join('');
+      } catch (e) {
+        console.error("Failed to load leaderboard:", e);
+      }
+
+      // 3. Render performance charts
+      if (attempts.length === 0) {
+        document.getElementById('charts-container').innerHTML = `
+          <div class="card" style="grid-column: span 3; padding: 3rem 2rem; text-align: center; border: 2px dashed var(--border); border-radius: 0; background-color: var(--bg-surface);">
+            <div style="font-family:'Archivo Black',sans-serif; font-size: 1.1rem; margin-bottom: 0.5rem; text-transform: uppercase;">No Analytics Available Yet</div>
+            <div style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.9rem;">Take your first test attempt to populate your performance charts!</div>
+            <a href="/topics.html" class="btn btn-blue" style="display: inline-block;">Browse Topics &amp; Start Testing</a>
+          </div>
+        `;
+      } else {
+        initDashboardCharts(attempts, lb);
+      }
+    }
+
+    loadDashboard();
+
+    // Responsive: collapse side panel on small screens
+    const mainGrid = document.getElementById('main-grid');
+    const resizeObs = new ResizeObserver(() => {
+      if (window.innerWidth < 900) mainGrid.style.gridTemplateColumns = '1fr';
+      else mainGrid.style.gridTemplateColumns = '1fr 300px';
+    });
+    resizeObs.observe(document.body);
+  </script>
+</body>
+</html>

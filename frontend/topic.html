@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Topic — Sophía Study</title>
+  <meta name="description" content="Study notes and tests for this topic."/>
+  <link rel="stylesheet" href="/css/sophia.css"/>
+  <link rel="stylesheet" href="/css/sidebar.css"/>
+  <link rel="stylesheet" href="/css/components.css"/>
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+  <div class="app-shell">
+    <nav id="sidebar" class="sidebar" role="navigation"></nav>
+    <div>
+      <header class="topbar">
+        <button class="hamburger" id="hamburger" aria-label="Open navigation"><span></span><span></span><span></span></button>
+        <span id="topbar-title" style="font-family:'Archivo Black',sans-serif;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.1em;">Topic</span>
+        <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+      </header>
+
+      <main class="main-content">
+        <div class="page-header">
+          <a href="/dashboard.html" style="font-size:0.8rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;">← Dashboard</a>
+          <h1 id="topic-name" style="margin-top:0.5rem;">Loading…</h1>
+          <p id="topic-desc" style="color:var(--text-muted);margin-top:0.25rem;"></p>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs" role="tablist">
+          <button class="tab-btn active" role="tab" data-tab="notes" id="tab-notes" aria-selected="true">Notes</button>
+          <button class="tab-btn" role="tab" data-tab="tests" id="tab-tests" aria-selected="false">Tests</button>
+        </div>
+
+        <!-- Notes Panel -->
+        <div class="tab-panel active" id="panel-notes" role="tabpanel">
+          <div style="padding:2rem 0;">
+            <div id="notes-list">
+              <div style="color:var(--text-muted);">Loading notes…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tests Panel -->
+        <div class="tab-panel" id="panel-tests" role="tabpanel">
+          <div style="padding:2rem 0;" id="tests-list">
+            <div style="color:var(--text-muted);">Loading tests…</div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initTheme } from '/js/theme.js';
+    import { requireAuth } from '/js/auth.js';
+    import { initSidebar } from '/js/sidebar.js';
+    import { api } from '/js/api.js';
+
+    initTheme();
+    const profile = await requireAuth();
+    initSidebar({ role: profile.role, activePage: 'topics', profile });
+
+    const params  = new URLSearchParams(location.search);
+    const topicId = params.get('id');
+    if (!topicId) { window.location.href = '/dashboard.html'; }
+
+    // Load topic details
+    let topicName = 'Topic';
+    try {
+      const topics = await api.get('/topics');
+      const topic  = topics.find(t => t.id === topicId);
+      if (topic) {
+        topicName = topic.name;
+        document.getElementById('topic-name').textContent = topic.name;
+        document.getElementById('topic-desc').textContent = topic.description || '';
+        document.getElementById('topbar-title').textContent = topic.name;
+        document.title = `${topic.name} — Sophía Study`;
+      }
+    } catch (_) {}
+
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected','true');
+        document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    // Load notes
+    try {
+      const notes = await api.get(`/notes?topicId=${topicId}`);
+      const container = document.getElementById('notes-list');
+      if (!notes.length) {
+        container.innerHTML = `<div class="alert alert-info">No notes available for this topic yet.</div>`;
+      } else {
+        container.innerHTML = notes.map(note => `
+          <div class="card card-blue" style="margin-bottom:1.5rem;">
+            <h3 style="font-size:1.1rem;margin-bottom:1rem;">${note.title}</h3>
+            <div class="markdown-body">${marked.parse(note.content || '')}</div>
+          </div>
+        `).join('');
+      }
+    } catch (e) {
+      document.getElementById('notes-list').innerHTML = `<div class="alert alert-error">${e.message}</div>`;
+    }
+
+    // Load tests for this topic
+    try {
+      const allTests = await api.get('/tests');
+      const tests = allTests.filter(t => t.topicId === topicId || t.type === 'overall');
+      const container = document.getElementById('tests-list');
+      if (!tests.length) {
+        container.innerHTML = `<div class="alert alert-info">No active tests for this topic yet.</div>`;
+      } else {
+        container.innerHTML = tests.map(test => `
+          <div class="card card-yellow" style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;">
+            <div>
+              <div class="card-title">${test.title}</div>
+              <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.25rem;">
+                ${test.timerMode === 'per_test' ? '⏱ ' + (test.duration/60).toFixed(0) + ' min total' : '⏱ per question'} &nbsp;|&nbsp;
+                ${test.questionIds?.length || 0} questions &nbsp;|&nbsp;
+                Pass: ${test.passThreshold}%
+              </div>
+            </div>
+            <a href="/test.html?id=${test.id}" class="btn btn-primary" style="flex-shrink:0;">
+              <span style="display:inline-block;width:0;height:0;border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:10px solid currentColor;margin-right:4px;"></span>
+              Start Test
+            </a>
+          </div>
+        `).join('');
+      }
+    } catch (e) {
+      document.getElementById('tests-list').innerHTML = `<div class="alert alert-error">${e.message}</div>`;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,346 @@
+/* ═══════════════════════════════════════════════════════════════
+   sidebar.css — Fixed sidebar navigation for inner pages.
+   On landing page (index.html), sidebar appears after hero scroll.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── App Shell ─────────────────────────────────────────────────── */
+.app-shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+}
+
+/* ─── Sidebar ───────────────────────────────────────────────────── */
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  background-color: var(--bg-surface);
+  border-right: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  z-index: 100;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color var(--transition);
+  /* Scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-raised) transparent;
+}
+
+/* Landing page: sidebar hidden until past hero */
+.sidebar.hidden-until-scroll {
+  position: fixed;
+  left: 0; top: 0;
+  transform: translateX(-100%);
+  opacity: 0;
+}
+
+.sidebar.hidden-until-scroll.visible {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* ─── Sidebar Logo / Brand ──────────────────────────────────────── */
+.sidebar-brand {
+  padding: 1.5rem 1.25rem 1rem;
+  border-bottom: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+}
+
+.sidebar-brand-mark {
+  /* Sophía: three stacked colored squares */
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.brand-sq {
+  width: 10px;
+  height: 10px;
+}
+
+.sidebar-brand-name {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.sidebar-brand-sub {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* ─── Nav Section ───────────────────────────────────────────────── */
+.sidebar-section {
+  padding: 1rem 0;
+  flex: 1;
+}
+
+.sidebar-section-label {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+  padding: 0.5rem 1.25rem;
+  margin-bottom: 0.25rem;
+}
+
+/* ─── Nav Items ─────────────────────────────────────────────────── */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1.25rem;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  position: relative;
+  transition: color var(--transition), background-color var(--transition);
+}
+
+.nav-item:hover {
+  color: var(--text);
+  background-color: var(--bg-raised);
+}
+
+/* Active state: square indicator on left + yellow text */
+.nav-item.active {
+  color: var(--text);
+  background-color: var(--bg-raised);
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background-color: var(--primary-yellow);
+}
+
+/* Nav icon — Sophía geometric shapes used as icons */
+.nav-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Geometric icon shapes */
+.icon-circle {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.icon-square {
+  width: 13px;
+  height: 13px;
+  background-color: currentColor;
+}
+
+.icon-triangle {
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 13px solid currentColor;
+}
+
+.icon-bar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 14px;
+}
+.icon-bar-group span {
+  height: 2px;
+  background-color: currentColor;
+  display: block;
+}
+.icon-bar-group span:nth-child(2) { width: 75%; }
+.icon-bar-group span:nth-child(3) { width: 50%; }
+
+.icon-diamond {
+  width: 12px;
+  height: 12px;
+  background-color: currentColor;
+  transform: rotate(45deg);
+}
+
+/* ─── Sidebar Footer ────────────────────────────────────────────── */
+.sidebar-footer {
+  border-top: 2px solid var(--border);
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sidebar-avatar {
+  width: 32px;
+  height: 32px;
+  background-color: var(--primary-blue);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.sidebar-username {
+  font-size: 0.8rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-role {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.sidebar-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sidebar-footer-actions .theme-toggle {
+  width: 32px;
+  height: 32px;
+  font-size: 0.875rem;
+}
+
+.btn-logout {
+  flex: 1;
+  background: none;
+  border: 2px solid var(--border);
+  color: var(--text-muted);
+  padding: 0.35rem 0.75rem;
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background-color var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.btn-logout:hover {
+  background-color: var(--primary-red);
+  color: white;
+  border-color: var(--primary-red);
+}
+
+/* ─── Main Content Area ─────────────────────────────────────────── */
+.main-content {
+  min-height: 100vh;
+  padding: 2rem;
+  overflow-x: hidden;
+}
+
+/* ─── Top Bar (mobile / search) ─────────────────────────────────── */
+.topbar {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 2px solid var(--border);
+  background-color: var(--bg-surface);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.hamburger {
+  background: none;
+  border: 2px solid var(--border);
+  color: var(--text);
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.hamburger span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background-color: currentColor;
+  transition: transform var(--transition);
+}
+
+/* ─── Responsive — Mobile ───────────────────────────────────────── */
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: fixed;
+    left: 0; top: 0;
+    height: 100vh;
+    width: 240px;
+    transform: translateX(-100%);
+    box-shadow: 4px 0 20px rgba(0,0,0,0.3);
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .topbar {
+    display: flex;
+  }
+
+  .main-content {
+    padding: 1rem;
+  }
+
+  /* Mobile overlay */
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 99;
+    display: none;
+  }
+
+  .sidebar-overlay.active {
+    display: block;
+  }
+}

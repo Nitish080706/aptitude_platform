@@ -1,0 +1,317 @@
+/* ═══════════════════════════════════════════════════════════════
+   sophía.css — Core design system
+   Sophía: geometry, primary colors, bold type, strict grid.
+   ═══════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&display=swap');
+
+/* ─── Theme Tokens ─────────────────────────────────────────────── */
+:root[data-theme="light"],
+:root {
+  --bg:           #f5f3ee;
+  --bg-surface:   #d7cfb6;
+  --bg-raised:    #e0ddd6;
+  --text:         #111111;
+  --text-muted:   #555555;
+  --text-inv:     #f5f3ee;
+  --border:       #111111;
+
+  --primary-red:    #ff1f3b; /* Vibrant scarlet */
+  --primary-blue:   #0062ff; /* Vibrant electric blue */
+  --primary-yellow: #ffb800; /* Vibrant bold yellow */
+  --primary-black:  #111111;
+  --primary-white:  #f5f3ee;
+
+  --red-hover:    #d90d25;
+  --blue-hover:   #0051d6;
+  --yellow-hover: #e0a200;
+
+  --shadow: none;
+  --transition: 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:root[data-theme="dark"] {
+  --bg:           #111111;
+  --bg-surface:   #1c1c1c;
+  --bg-raised:    #252525;
+  --text:         #f5f3ee;
+  --text-muted:   #999999;
+  --text-inv:     #111111;
+  --border:       #f5f3ee;
+
+  --primary-red:    #ff3b42; /* Saturated neon red */
+  --primary-blue:   #3a86ff; /* Saturated royal blue */
+  --primary-yellow: #ffd32a; /* Saturated neon yellow */
+  --primary-black:  #f5f3ee;
+  --primary-white:  #111111;
+
+  --red-hover:    #e61a22;
+  --blue-hover:   #2563eb;
+  --yellow-hover: #ffd000;
+}
+
+/* ─── Reset & Base ──────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Archivo', sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
+  transition: background-color var(--transition), color var(--transition);
+  min-height: 100vh;
+}
+
+/* ─── Typography ────────────────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Archivo Black', sans-serif;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+h1 { font-size: clamp(2.5rem, 6vw, 5rem); }
+h2 { font-size: clamp(1.8rem, 4vw, 3rem); }
+h3 { font-size: clamp(1.3rem, 2.5vw, 1.8rem); }
+h4 { font-size: 1.2rem; }
+h5 { font-size: 1rem; font-weight: 700; }
+
+.heading-display {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: clamp(3rem, 10vw, 8rem);
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.overline {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+}
+
+a {
+  color: var(--primary-blue);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+a:hover { color: var(--primary-red); }
+
+/* ─── Grid System ───────────────────────────────────────────────── */
+.grid {
+  display: grid;
+  gap: 2px;        /* Sophía: tight grid seams */
+}
+
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+.grid-auto { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* ─── Geometric Shape Helpers ───────────────────────────────────── */
+.shape {
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.shape-circle {
+  border-radius: 50%;
+}
+
+.shape-square {
+  border-radius: 0;
+}
+
+.shape-triangle {
+  width: 0;
+  height: 0;
+  background: transparent !important;
+  border-style: solid;
+}
+
+/* Triangle pointing right (play button) */
+.shape-triangle-right {
+  border-width: 10px 0 10px 18px;
+  border-color: transparent transparent transparent currentColor;
+}
+
+/* Triangle pointing up */
+.shape-triangle-up {
+  border-width: 0 10px 18px 10px;
+  border-color: transparent transparent currentColor transparent;
+}
+
+.shape-bar {
+  border-radius: 2px;
+  height: 6px;
+}
+
+/* ─── Color Utilities ───────────────────────────────────────────── */
+.bg-red    { background-color: var(--primary-red); }
+.bg-blue   { background-color: var(--primary-blue); }
+.bg-yellow { background-color: var(--primary-yellow); }
+.bg-black  { background-color: var(--primary-black); }
+.bg-surface{ background-color: var(--bg-surface); }
+.bg-raised { background-color: var(--bg-raised); }
+
+.text-red    { color: var(--primary-red); }
+.text-blue   { color: var(--primary-blue); }
+.text-yellow { color: var(--primary-yellow); }
+.text-muted  { color: var(--text-muted); }
+.text-inv    { color: var(--text-inv); }
+
+/* ─── Decorative Geometric Backgrounds ─────────────────────────── */
+.geo-deco {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── Theme Toggle Button ───────────────────────────────────────── */
+.theme-toggle {
+  background: none;
+  border: 2px solid var(--border);
+  color: var(--text);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color var(--transition), transform var(--transition);
+  flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+  background-color: var(--primary-yellow);
+  color: var(--primary-black);
+  transform: rotate(20deg);
+}
+
+/* ─── Layout Helpers ────────────────────────────────────────────── */
+.flex         { display: flex; }
+.flex-col     { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.justify-center  { justify-content: center; }
+.gap-1  { gap: 0.5rem; }
+.gap-2  { gap: 1rem; }
+.gap-3  { gap: 1.5rem; }
+.gap-4  { gap: 2rem; }
+.gap-6  { gap: 3rem; }
+
+.p-1  { padding: 0.5rem; }
+.p-2  { padding: 1rem; }
+.p-3  { padding: 1.5rem; }
+.p-4  { padding: 2rem; }
+.p-6  { padding: 3rem; }
+
+.mt-1  { margin-top: 0.5rem; }
+.mt-2  { margin-top: 1rem; }
+.mt-3  { margin-top: 1.5rem; }
+.mt-4  { margin-top: 2rem; }
+.mb-2  { margin-bottom: 1rem; }
+.mb-4  { margin-bottom: 2rem; }
+
+.w-full { width: 100%; }
+.text-center { text-align: center; }
+.uppercase { text-transform: uppercase; }
+.bold { font-weight: 700; }
+.relative { position: relative; }
+.overflow-hidden { overflow: hidden; }
+
+/* ─── Dividers ──────────────────────────────────────────────────── */
+.divider {
+  width: 100%;
+  height: 2px;
+  background-color: var(--border);
+  margin: 2rem 0;
+}
+
+.divider-color {
+  height: 4px;
+  background: linear-gradient(90deg,
+    var(--primary-red) 33%,
+    var(--primary-blue) 33% 66%,
+    var(--primary-yellow) 66%
+  );
+}
+
+/* ─── Animations ────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse-border {
+  0%, 100% { box-shadow: 0 0 0 0 var(--primary-yellow); }
+  50%       { box-shadow: 0 0 0 4px var(--primary-yellow); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.animate-fade-in  { animation: fadeIn 0.4s ease forwards; }
+.animate-slide-in { animation: slideInLeft 0.4s ease forwards; }
+
+/* ─── Loading Spinner ───────────────────────────────────────────── */
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--bg-raised);
+  border-top-color: var(--primary-yellow);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+/* ─── Responsive Breakpoints ────────────────────────────────────── */
+@media (max-width: 900px) {
+  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .grid-2,
+  .grid-3,
+  .grid-4 { grid-template-columns: 1fr; }
+  .container { padding: 0 1rem; }
+}

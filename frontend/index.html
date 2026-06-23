@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sophía Study — Learn. Test. Rank.</title>
+  <meta name="description" content="A Sophía-inspired study platform. Build knowledge, conquer tests, and compete on the global leaderboard." />
+  <link rel="stylesheet" href="/css/sophia.css" />
+  <link rel="stylesheet" href="/css/components.css" />
+  <link rel="stylesheet" href="/css/sidebar.css" />
+  <style>
+    /* ── Landing-specific styles ───────────────────────────── */
+    body { overflow-x: hidden; }
+
+    /* Hero section */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      overflow: hidden;
+    }
+
+    .hero-left {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 4rem 3rem 4rem 4rem;
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-right {
+      position: relative;
+      overflow: hidden;
+      background-color: var(--primary-blue);
+    }
+
+    .hero-topbar {
+      position: absolute;
+      top: 2rem; right: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      z-index: 10;
+    }
+
+    .hero-admin-link {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: color var(--transition), border-color var(--transition);
+    }
+    .hero-admin-link:hover {
+      color: var(--text);
+      border-bottom-color: var(--text-muted);
+    }
+
+    .hero-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .eyebrow-bar {
+      width: 48px;
+      height: 4px;
+      background-color: var(--primary-red);
+    }
+
+    .hero-headline {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: clamp(3.5rem, 7vw, 6.5rem);
+      line-height: 0.92;
+      letter-spacing: -0.04em;
+      text-transform: uppercase;
+      color: var(--text);
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-headline .line-yellow { color: var(--primary-yellow); }
+    .hero-headline .line-red    { color: var(--primary-red); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-muted);
+      max-width: 380px;
+      line-height: 1.7;
+      margin-bottom: 2.5rem;
+    }
+
+    .hero-ctas {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    /* Floating geometric accents */
+    .hero-deco-circle {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .hero-svg {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Scroll indicator */
+    .scroll-hint {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      animation: bounce 2s infinite;
+      z-index: 3;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50%       { transform: translateX(-50%) translateY(-8px); }
+    }
+
+    .scroll-hint-line {
+      width: 1px;
+      height: 40px;
+      background: var(--text-muted);
+    }
+
+    /* ── Below-hero content (features section) ─────────────── */
+    .below-hero {
+      margin-left: 240px; /* accounts for sidebar when visible */
+      transition: margin-left 0.35s ease;
+    }
+
+    .below-hero.no-sidebar { margin-left: 0; }
+
+    .features-section {
+      padding: 5rem 4rem;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      margin-top: 3rem;
+    }
+
+    .feature-block {
+      padding: 2.5rem 2rem;
+      background-color: var(--bg-surface);
+      border: 2px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-block::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+    }
+
+    .feature-block:nth-child(1)::before { background: var(--primary-red); }
+    .feature-block:nth-child(2)::before { background: var(--primary-blue); }
+    .feature-block:nth-child(3)::before { background: var(--primary-yellow); }
+    .feature-block:nth-child(4)::before { background: var(--primary-yellow); }
+    .feature-block:nth-child(5)::before { background: var(--primary-red); }
+    .feature-block:nth-child(6)::before { background: var(--primary-blue); }
+
+    .feature-shape {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 1.25rem;
+    }
+
+    .feature-title {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-desc {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Color stripe footer */
+    .color-stripe {
+      height: 8px;
+      background: linear-gradient(90deg,
+        var(--primary-red) 33%,
+        var(--primary-blue) 33% 66%,
+        var(--primary-yellow) 66%
+      );
+    }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; }
+      .hero-right { display: none; }
+      .hero-left { padding: 6rem 1.5rem 4rem; }
+      .features-section { padding: 3rem 1.5rem; }
+      .features-grid { grid-template-columns: 1fr; }
+      .below-hero { margin-left: 0 !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar (hidden until scroll on landing) -->
+  <nav id="sidebar" class="sidebar hidden-until-scroll" role="navigation" aria-label="Main navigation"></nav>
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+  <!-- ── HERO ─────────────────────────────────────────────────── -->
+  <section class="hero" id="hero" aria-label="Hero section">
+
+    <!-- Top bar controls -->
+    <div class="hero-topbar">
+      <a href="/admin/login.html" class="hero-admin-link">Admin →</a>
+      <button class="theme-toggle" id="hero-theme-toggle" aria-label="Toggle theme">☀️</button>
+    </div>
+
+    <!-- Left: Text & CTAs -->
+    <div class="hero-left">
+      <div class="hero-eyebrow">
+        <div class="eyebrow-bar"></div>
+        <span class="overline">Sophía Study Platform</span>
+      </div>
+
+      <h1 class="hero-headline">
+        <span class="line-yellow">Learn.</span><br>
+        Test.<br>
+        <span class="line-red">Rank.</span>
+      </h1>
+
+      <p class="hero-sub">
+        A structured study platform built on clarity and precision.
+        Master topics, conquer timed tests, and rise through the global leaderboard.
+      </p>
+
+      <div class="hero-ctas">
+        <a href="/login.html" class="btn btn-blue btn-lg" id="cta-login">Login</a>
+        <a href="/signup.html" class="btn btn-danger btn-lg" id="cta-signup">Sign Up</a>
+      </div>
+    </div>
+
+    <!-- Right: Sophía SVG Composition -->
+    <div class="hero-right" id="hero-canvas" aria-hidden="true"></div>
+
+    <!-- Scroll indicator -->
+    <div class="scroll-hint" aria-hidden="true">
+      <div class="scroll-hint-line"></div>
+      <span>Scroll</span>
+    </div>
+  </section>
+
+  <!-- ── BELOW HERO ────────────────────────────────────────────── -->
+  <div class="below-hero no-sidebar" id="below-hero">
+
+    <!-- Features grid -->
+    <section class="features-section" aria-labelledby="features-heading">
+      <div class="overline">What you get</div>
+      <h2 id="features-heading" style="margin-top:0.5rem;">Built for<br>serious learners.</h2>
+
+      <div class="features-grid">
+        <div class="feature-block">
+          <div class="feature-shape shape shape-circle bg-red"></div>
+          <div class="feature-title">Structured Topics</div>
+          <p class="feature-desc">Content organized into topics with rich markdown notes to read before testing.</p>
+        </div>
+        <div class="feature-block">
+          <div class="feature-shape shape shape-square bg-blue"></div>
+          <div class="feature-title">Timed Tests</div>
+          <p class="feature-desc">MCQ and fill-in-the-blank tests with server-side timer validation — no cheating.</p>
+        </div>
+        <div class="feature-block">
+          <div class="feature-shape shape shape-square bg-yellow"></div>
+          <div class="feature-title">Instant Results</div>
+          <p class="feature-desc">Score breakdown, per-question explanations, and pass/fail status immediately after submission.</p>
+        </div>
+        <div class="feature-block">
+          <div class="feature-shape shape shape-square bg-yellow"></div>
+          <div class="feature-title">Global Leaderboard</div>
+          <p class="feature-desc">Compete with all users across all tests. Normalized scores keep it fair regardless of test difficulty.</p>
+        </div>
+        <div class="feature-block">
+          <div class="feature-shape shape shape-circle bg-red"></div>
+          <div class="feature-title">Attempt History</div>
+          <p class="feature-desc">Track your progress over time. Every attempt recorded with scores and timestamps.</p>
+        </div>
+        <div class="feature-block">
+          <div class="feature-shape shape shape-square bg-blue"></div>
+          <div class="feature-title">Dark &amp; Light Modes</div>
+          <p class="feature-desc">A fully themed Sophía interface — toggle between dark and light, preference saved automatically.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="color-stripe" aria-hidden="true"></div>
+  </div>
+
+  <script type="module">
+    import { initTheme, getTheme } from '/js/theme.js';
+    import { renderHeroComposition, animateBackgroundShapes } from '/js/sophia.js';
+    import { initSidebar } from '/js/sidebar.js';
+    import { onAuth, getCachedProfile } from '/js/auth.js';
+
+    // Apply theme immediately
+    initTheme();
+
+    // Render hero SVG
+    renderHeroComposition('hero-canvas');
+
+    // Init sidebar (scroll mode = shows after hero)
+    const profile = getCachedProfile();
+    const role = profile?.role || 'user';
+    initSidebar({ role, activePage: '', scrollMode: true, profile });
+
+    // Adjust below-hero margin when sidebar shows
+    const sidebarEl = document.getElementById('sidebar');
+    const belowHero = document.getElementById('below-hero');
+    const mo = new MutationObserver(() => {
+      if (sidebarEl.classList.contains('visible')) {
+        belowHero.classList.remove('no-sidebar');
+      } else {
+        belowHero.classList.add('no-sidebar');
+      }
+    });
+    mo.observe(sidebarEl, { attributes: true, attributeFilter: ['class'] });
+
+    // If already logged in, update CTAs
+    onAuth(async (user) => {
+      if (user) {
+        const p = getCachedProfile();
+        if (p?.role === 'admin') {
+          document.getElementById('cta-login').href = '/admin/dashboard.html';
+          document.getElementById('cta-login').textContent = 'Admin Dashboard';
+          document.getElementById('cta-signup').style.display = 'none';
+        } else {
+          document.getElementById('cta-login').href = '/dashboard.html';
+          document.getElementById('cta-login').textContent = 'Go to Dashboard';
+          document.getElementById('cta-signup').style.display = 'none';
+        }
+      }
+    });
+  </script>
+</body>
+</html>

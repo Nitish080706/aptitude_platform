@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Manage Topics — Sophía Study Admin</title>
+  <link rel="stylesheet" href="/css/sophia.css"/>
+  <link rel="stylesheet" href="/css/sidebar.css"/>
+  <link rel="stylesheet" href="/css/components.css"/>
+</head>
+<body>
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+  <div class="app-shell">
+    <nav id="sidebar" class="sidebar" role="navigation"></nav>
+    <div>
+      <header class="topbar">
+        <button class="hamburger" id="hamburger" aria-label="Open navigation"><span></span><span></span><span></span></button>
+        <span style="font-family:'Archivo Black',sans-serif;font-size:0.9rem;text-transform:uppercase;">Topics</span>
+        <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+      </header>
+
+      <main class="main-content">
+        <div class="page-header flex justify-between items-center">
+          <div>
+            <div class="overline">Admin</div>
+            <h1>Manage Topics</h1>
+          </div>
+          <div style="display:flex;gap:0.75rem;align-items:center;">
+            <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+            <button class="btn btn-primary" id="btn-new-topic">+ New Topic</button>
+          </div>
+        </div>
+
+        <div id="alert-area"></div>
+        <div id="topics-list"><div style="color:var(--text-muted);">Loading…</div></div>
+      </main>
+    </div>
+  </div>
+
+  <!-- New/Edit Topic Modal -->
+  <div class="modal-overlay" id="topic-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-title">New Topic</div>
+        <button class="modal-close" id="modal-close-btn">✕</button>
+      </div>
+      <form class="modal-form" id="topic-form">
+        <input type="hidden" id="topic-id" />
+        <div class="form-group">
+          <label class="form-label" for="topic-name">Topic Name</label>
+          <input class="form-input" type="text" id="topic-name" required placeholder="e.g. Data Structures"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="topic-desc">Description</label>
+          <textarea class="form-textarea" id="topic-desc" placeholder="Brief description of the topic…"></textarea>
+        </div>
+        <div id="form-error" class="form-error" style="display:none;"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="modal-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="form-submit-btn">Create Topic</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initTheme } from '/js/theme.js';
+    import { requireAuth } from '/js/auth.js';
+    import { initSidebar } from '/js/sidebar.js';
+    import { api } from '/js/api.js';
+
+    initTheme();
+    const profile = await requireAuth(true);
+    initSidebar({ role: 'admin', activePage: 'topics', profile });
+
+    let topics = [];
+
+    async function loadTopics() {
+      try {
+        topics = await api.get('/topics');
+        renderTopics();
+      } catch (e) {
+        showAlert(e.message, 'error');
+      }
+    }
+
+    function renderTopics() {
+      const container = document.getElementById('topics-list');
+      if (!topics.length) {
+        container.innerHTML = `<div class="alert alert-info">No topics yet. Create one!</div>`;
+        return;
+      }
+      container.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Description</th><th style="width:160px;">Actions</th></tr></thead>
+            <tbody>
+              ${topics.map(t => `
+                <tr>
+                  <td><strong>${t.name}</strong></td>
+                  <td style="color:var(--text-muted);">${t.description || '—'}</td>
+                  <td>
+                    <div style="display:flex;gap:0.5rem;">
+                      <button class="btn btn-ghost btn-sm" onclick="openEdit('${t.id}')">Edit</button>
+                      <button class="btn btn-danger btn-sm" onclick="deleteTopic('${t.id}','${t.name}')">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function showAlert(msg, type = 'error') {
+      const area = document.getElementById('alert-area');
+      area.innerHTML = `<div class="alert alert-${type}" style="margin-bottom:1rem;">${msg}</div>`;
+      setTimeout(() => { area.innerHTML = ''; }, 4000);
+    }
+
+    // Modal helpers
+    const modal = document.getElementById('topic-modal');
+    function openModal() { modal.classList.add('active'); }
+    function closeModal() { modal.classList.remove('active'); document.getElementById('topic-form').reset(); document.getElementById('topic-id').value=''; document.getElementById('form-error').style.display='none'; document.getElementById('modal-title').textContent='New Topic'; document.getElementById('form-submit-btn').textContent='Create Topic'; }
+
+    document.getElementById('btn-new-topic').addEventListener('click', openModal);
+    document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+    document.getElementById('modal-cancel').addEventListener('click', closeModal);
+
+    window.openEdit = (id) => {
+      const t = topics.find(x => x.id === id);
+      if (!t) return;
+      document.getElementById('topic-id').value   = t.id;
+      document.getElementById('topic-name').value  = t.name;
+      document.getElementById('topic-desc').value  = t.description || '';
+      document.getElementById('modal-title').textContent = 'Edit Topic';
+      document.getElementById('form-submit-btn').textContent = 'Save Changes';
+      openModal();
+    };
+
+    window.deleteTopic = async (id, name) => {
+      if (!confirm(`Delete topic "${name}"? This cannot be undone.`)) return;
+      try {
+        await api.delete(`/topics/${id}`);
+        showAlert('Topic deleted.', 'success');
+        loadTopics();
+      } catch (e) { showAlert(e.message); }
+    };
+
+    document.getElementById('topic-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl  = document.getElementById('form-error');
+      const subBtn = document.getElementById('form-submit-btn');
+      errEl.style.display = 'none';
+      subBtn.disabled = true;
+
+      const id   = document.getElementById('topic-id').value;
+      const body = {
+        name: document.getElementById('topic-name').value.trim(),
+        description: document.getElementById('topic-desc').value.trim(),
+      };
+
+      try {
+        if (id) await api.put(`/topics/${id}`, body);
+        else    await api.post('/topics', body);
+        closeModal();
+        showAlert(id ? 'Topic updated.' : 'Topic created.', 'success');
+        loadTopics();
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+      } finally {
+        subBtn.disabled = false;
+      }
+    });
+
+    loadTopics();
+  </script>
+</body>
+</html>

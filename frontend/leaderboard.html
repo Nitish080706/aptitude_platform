@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Leaderboard — Sophía Study</title>
+  <meta name="description" content="Global leaderboard — ranked by total normalized score across all tests."/>
+  <link rel="stylesheet" href="/css/sophia.css"/>
+  <link rel="stylesheet" href="/css/sidebar.css"/>
+  <link rel="stylesheet" href="/css/components.css"/>
+  <style>
+    .lb-header-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      margin-bottom: 2rem;
+    }
+    .lb-podium {
+      padding: 2rem 1rem;
+      text-align: center;
+      border: 2px solid var(--border);
+      position: relative;
+    }
+    .lb-podium.rank-1 { background: var(--primary-yellow); color: var(--primary-black); }
+    .lb-podium.rank-2 { background: var(--bg-surface); }
+    .lb-podium.rank-3 { background: var(--primary-red);  color: white; }
+    .lb-rank-num  { font-family:'Archivo Black',sans-serif; font-size:3rem; line-height:1; }
+    .lb-name      { font-family:'Archivo Black',sans-serif; font-size:0.9rem; text-transform:uppercase; letter-spacing:0.06em; margin-top:0.5rem; }
+    .lb-score-tag { font-size:0.8rem; margin-top:0.25rem; opacity:0.75; }
+    .lb-you-row   { background: rgba(244,163,0,0.1); }
+  </style>
+</head>
+<body>
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+  <div class="app-shell">
+    <nav id="sidebar" class="sidebar" role="navigation"></nav>
+    <div>
+      <header class="topbar">
+        <button class="hamburger" id="hamburger" aria-label="Open navigation"><span></span><span></span><span></span></button>
+        <span style="font-family:'Archivo Black',sans-serif;font-size:0.9rem;text-transform:uppercase;">Leaderboard</span>
+        <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+      </header>
+
+      <main class="main-content">
+        <div class="page-header flex justify-between items-center">
+          <div>
+            <div class="overline">Global Rankings</div>
+            <h1>Leaderboard</h1>
+          </div>
+          <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+        </div>
+
+        <!-- Podium (top 3) -->
+        <div class="lb-header-strip" id="lb-podium" aria-hidden="true"></div>
+
+        <!-- Full table -->
+        <div id="lb-table-wrap">
+          <div style="color:var(--text-muted);">Loading leaderboard…</div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initTheme } from '/js/theme.js';
+    import { requireAuth } from '/js/auth.js';
+    import { initSidebar } from '/js/sidebar.js';
+    import { api } from '/js/api.js';
+
+    initTheme();
+    const profile = await requireAuth();
+    initSidebar({ role: profile.role, activePage: 'leaderboard', profile });
+
+    try {
+      const entries = await api.get('/leaderboard?limit=100');
+      const top3    = entries.slice(0, 3);
+      const rest    = entries;
+
+      // Podium
+      const podium = document.getElementById('lb-podium');
+      const rankEmoji = ['🥇', '🥈', '🥉'];
+      podium.innerHTML = top3.map((e, i) => `
+        <div class="lb-podium rank-${i+1}">
+          <div class="lb-rank-num">${rankEmoji[i] || e.rank}</div>
+          <div class="lb-name">${e.name}</div>
+          <div class="lb-score-tag">@${e.username} · ${e.totalNormalizedScore.toFixed(0)} pts</div>
+        </div>
+      `).join('');
+
+      // Full table
+      const tableWrap = document.getElementById('lb-table-wrap');
+      tableWrap.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Name</th>
+                <th>Username</th>
+                <th>Total Score</th>
+                <th>Attempts</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${entries.map(e => {
+                const isYou = e.userId === profile.uid;
+                return `
+                  <tr class="${isYou ? 'lb-you-row' : ''}">
+                    <td>
+                      <div class="rank-badge ${e.rank <= 3 ? 'rank-' + e.rank : ''}">${e.rank}</div>
+                    </td>
+                    <td>
+                      <strong>${e.name}</strong>
+                      ${isYou ? ' <span class="badge badge-yellow">You</span>' : ''}
+                    </td>
+                    <td style="color:var(--text-muted);">@${e.username}</td>
+                    <td style="font-family:'Archivo Black',sans-serif;color:var(--primary-yellow);">
+                      ${e.totalNormalizedScore.toFixed(0)}
+                    </td>
+                    <td>${e.totalAttempts}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    } catch (e) {
+      document.getElementById('lb-table-wrap').innerHTML = `<div class="alert alert-error">${e.message}</div>`;
+    }
+  </script>
+</body>
+</html>

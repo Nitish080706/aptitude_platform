@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign Up — Sophía Study</title>
+  <meta name="description" content="Create a Sophía Study account to start learning and competing." />
+  <link rel="stylesheet" href="/css/sophia.css" />
+  <link rel="stylesheet" href="/css/components.css" />
+  <style>
+    body {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    .auth-panel {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 3rem 4rem;
+      position: relative;
+      overflow-y: auto;
+    }
+    .auth-back {
+      position: absolute;
+      top: 2rem; left: 2rem;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: color var(--transition);
+    }
+    .auth-back:hover { color: var(--text); }
+    .auth-topbar {
+      position: absolute;
+      top: 2rem; right: 2rem;
+    }
+    .auth-header { margin-bottom: 2rem; }
+    .auth-header h1 { font-size: 2.2rem; text-transform: uppercase; }
+    .auth-header p  { color: var(--text-muted); margin-top: 0.4rem; font-size: 0.9rem; }
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+      max-width: 400px;
+    }
+    .auth-footer {
+      margin-top: 1.5rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+    .auth-footer a { color: var(--primary-blue); font-weight: 600; }
+    .auth-art {
+      background-color: var(--primary-red);
+      position: relative;
+      overflow: hidden;
+    }
+    .auth-quote {
+      position: absolute;
+      bottom: 3rem; left: 2rem; right: 2rem;
+      z-index: 2;
+    }
+    .auth-quote blockquote {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.4rem;
+      color: white;
+      line-height: 1.2;
+      text-transform: uppercase;
+    }
+    .auth-quote cite {
+      display: block;
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.6);
+      font-style: normal;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .username-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    @media (max-width: 800px) {
+      body { grid-template-columns: 1fr; }
+      .auth-art { display: none; }
+      .auth-panel { padding: 5rem 1.5rem 2rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="auth-panel">
+    <a href="/index.html" class="auth-back">← Back</a>
+    <div class="auth-topbar">
+      <button class="theme-toggle" aria-label="Toggle theme">☀️</button>
+    </div>
+
+    <div class="auth-header">
+      <div class="overline" style="margin-bottom:0.5rem;">Join the platform</div>
+      <h1>Sign Up</h1>
+      <p>Create your account to start learning.</p>
+    </div>
+
+    <div id="auth-error" class="alert alert-error" style="display:none;"></div>
+    <div id="auth-success" class="alert alert-success" style="display:none;"></div>
+
+    <form class="auth-form" id="signup-form" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="name">Full Name</label>
+        <input class="form-input" type="text" id="name" name="name"
+               placeholder="Jane Doe" autocomplete="name" required />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="username">Username</label>
+        <input class="form-input" type="text" id="username" name="username"
+               placeholder="janedoe" autocomplete="username"
+               pattern="^[a-zA-Z0-9_]+" required />
+        <span class="username-hint">Letters, numbers, underscores only.</span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="email">Email Address</label>
+        <input class="form-input" type="email" id="email" name="email"
+               placeholder="jane@example.com" autocomplete="email" required />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input class="form-input" type="password" id="password" name="password"
+               placeholder="Min. 6 characters" autocomplete="new-password"
+               minlength="6" required />
+      </div>
+
+      <button type="submit" class="btn btn-danger btn-lg w-full" id="btn-submit">
+        Create Account
+      </button>
+    </form>
+
+    <p class="auth-footer">
+      Already have an account? <a href="/login.html">Login</a>
+    </p>
+  </div>
+
+  <div class="auth-art" aria-hidden="true">
+    <svg viewBox="0 0 500 600" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;position:absolute;inset:0">
+      <rect width="500" height="600" fill="var(--primary-red)"/>
+      <rect x="0" y="0" width="250" height="250" fill="var(--primary-yellow)" opacity="0.85"/>
+      <circle cx="350" cy="450" r="140" fill="var(--primary-blue)" opacity="0.7"/>
+      <rect x="240" y="0" width="4" height="600" fill="white" opacity="0.4"/>
+      <rect x="0" y="240" width="500" height="4" fill="white" opacity="0.4"/>
+      <circle cx="120" cy="120" r="80" fill="var(--primary-red)" opacity="0.6"/>
+      <polygon points="0,400 200,200 400,400" fill="#111" opacity="0.25"/>
+    </svg>
+    <div class="auth-quote">
+      <blockquote>"Less is more."</blockquote>
+      <cite>— Ludwig Mies van der Rohe</cite>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initTheme } from '/js/theme.js';
+    import { onAuth, getCachedProfile, setCachedProfile } from '/js/auth.js';
+    import { api } from '/js/api.js';
+
+    initTheme();
+
+    onAuth((user) => {
+      if (!user) return;
+      const p = getCachedProfile();
+      if (p?.role === 'admin') window.location.href = '/admin/dashboard.html';
+      else                      window.location.href = '/dashboard.html';
+    });
+
+    const form    = document.getElementById('signup-form');
+    const errBox  = document.getElementById('auth-error');
+    const sucBox  = document.getElementById('auth-success');
+    const btnSub  = document.getElementById('btn-submit');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errBox.style.display = 'none';
+      sucBox.style.display = 'none';
+      btnSub.disabled = true;
+      btnSub.textContent = 'Creating account…';
+
+      const body = {
+        name:     document.getElementById('name').value.trim(),
+        username: document.getElementById('username').value.trim(),
+        email:    document.getElementById('email').value.trim(),
+        password: document.getElementById('password').value,
+      };
+
+      try {
+        const profile = await api.post('/auth/signup', body);
+        setCachedProfile(profile);
+        sucBox.textContent = 'Account created! Redirecting…';
+        sucBox.style.display = 'block';
+        setTimeout(() => { window.location.href = '/dashboard.html'; }, 1200);
+      } catch (err) {
+        errBox.textContent = err.message || 'Signup failed. Please try again.';
+        errBox.style.display = 'block';
+        btnSub.disabled = false;
+        btnSub.textContent = 'Create Account';
+      }
+    });
+  </script>
+</body>
+</html>

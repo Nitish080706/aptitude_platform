@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Manage Test Questions — Sophía Study Admin</title>
+  <link rel="stylesheet" href="/css/sophia.css"/>
+  <link rel="stylesheet" href="/css/sidebar.css"/>
+  <link rel="stylesheet" href="/css/components.css"/>
+</head>
+<body>
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+  <div class="app-shell">
+    <nav id="sidebar" class="sidebar" role="navigation"></nav>
+    <div>
+      <header class="topbar">
+        <button class="hamburger" id="hamburger" aria-label="Open navigation"><span></span><span></span><span></span></button>
+        <span style="font-family:'Archivo Black',sans-serif;font-size:0.9rem;text-transform:uppercase;">Test Questions</span>
+        <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+      </header>
+
+      <main class="main-content">
+        <div class="page-header flex justify-between items-center">
+          <div><div class="overline">Admin</div><h1>Test Questions</h1></div>
+          <div style="display:flex;gap:0.75rem;align-items:center;">
+            <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+            <button class="btn btn-ghost" id="btn-bulk-import" disabled>⬆ Bulk Import JSON</button>
+            <button class="btn btn-primary" id="btn-new-q" disabled>+ Add Test Question</button>
+          </div>
+        </div>
+
+        <div class="flex gap-2 items-center" style="margin-bottom:1.5rem;flex-wrap:wrap;">
+          <div class="form-group" style="flex:1;min-width:200px;">
+            <label class="form-label" for="topic-select">Filter by Topic</label>
+            <select class="form-select" id="topic-select"><option value="">— Select a topic —</option></select>
+          </div>
+        </div>
+
+        <div id="alert-area"></div>
+        <div id="q-list"><div style="color:var(--text-muted);">Select a topic to see test questions.</div></div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Question Modal -->
+  <div class="modal-overlay" id="q-modal">
+    <div class="modal" style="max-width:640px;">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-title">Add Test Question</div>
+        <button class="modal-close" id="modal-close-btn">✕</button>
+      </div>
+      <form class="modal-form" id="q-form">
+        <input type="hidden" id="q-id"/>
+
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <div style="display:flex;gap:0.75rem;">
+            <label class="option-item" style="flex:1;">
+              <input type="radio" name="q-type" value="mcq" checked/> MCQ
+            </label>
+            <label class="option-item" style="flex:1;">
+              <input type="radio" name="q-type" value="fill_blank"/> Fill in the Blank
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="q-text">Question Text</label>
+          <textarea class="form-textarea" id="q-text" style="min-height:80px;" required placeholder="Enter the question…"></textarea>
+        </div>
+
+        <!-- MCQ Options -->
+        <div id="mcq-section">
+          <div class="form-group">
+            <label class="form-label">Answer Options (4 required)</label>
+            <div style="display:flex;flex-direction:column;gap:0.5rem;">
+              <input class="form-input" type="text" id="opt-0" placeholder="Option A"/>
+              <input class="form-input" type="text" id="opt-1" placeholder="Option B"/>
+              <input class="form-input" type="text" id="opt-2" placeholder="Option C"/>
+              <input class="form-input" type="text" id="opt-3" placeholder="Option D"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="correct-mcq">Correct Answer (must match one option exactly)</label>
+            <input class="form-input" type="text" id="correct-mcq" placeholder="e.g. Option A text"/>
+          </div>
+        </div>
+
+        <!-- Fill blank section -->
+        <div id="fill-section" style="display:none;">
+          <div class="form-group">
+            <label class="form-label" for="correct-fill">Correct Answer</label>
+            <input class="form-input" type="text" id="correct-fill" placeholder="Expected answer (case-insensitive)"/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="q-explanation">Explanation</label>
+          <textarea class="form-textarea" id="q-explanation" style="min-height:60px;" placeholder="Explain the correct answer…"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="q-difficulty">Difficulty</label>
+          <select class="form-select" id="q-difficulty">
+            <option value="easy">Easy</option>
+            <option value="medium" selected>Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+
+        <div id="form-error" class="form-error" style="display:none;"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="modal-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="form-submit-btn">Add Question</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bulk Import Modal -->
+  <div class="modal-overlay" id="bulk-modal">
+    <div class="modal" style="max-width:700px;">
+      <div class="modal-header">
+        <div class="modal-title">Bulk Import Test Questions via JSON</div>
+        <button class="modal-close" id="bulk-modal-close">✕</button>
+      </div>
+      <div style="padding:0 1.5rem 0.5rem;">
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem;">
+          Paste a JSON array of questions (or a single object). Supported field names:
+        </p>
+        <pre style="font-size:0.75rem;background:var(--surface-alt,#1a1a1a);border:1px solid var(--border);border-radius:6px;padding:0.75rem;overflow-x:auto;margin-bottom:1rem;color:var(--text-muted);">[
+  {
+    "TYPE": "MCQ",
+    "QUESTION_TEXT": "Your question here?",
+    "Answer_Options": ["A", "B", "C", "D"],
+    "Correct_Answer": "A",
+    "Explanation": "Optional explanation",
+    "Difficulty": "Medium"
+  }
+]</pre>
+        <div class="form-group">
+          <label class="form-label" for="bulk-json-input">JSON Input</label>
+          <textarea class="form-textarea" id="bulk-json-input"
+            style="min-height:220px;font-family:monospace;font-size:0.82rem;"
+            placeholder="Paste your JSON array here…"></textarea>
+        </div>
+        <div id="bulk-parse-error" class="form-error" style="display:none;margin-bottom:0.5rem;"></div>
+        <div id="bulk-result" style="display:none;margin-bottom:0.75rem;"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="bulk-modal-cancel">Cancel</button>
+          <button type="button" class="btn btn-primary" id="bulk-submit-btn">Import Questions</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initTheme } from '/js/theme.js';
+    import { requireAuth } from '/js/auth.js';
+    import { initSidebar } from '/js/sidebar.js';
+    import { api } from '/js/api.js';
+
+    initTheme();
+    const profile = await requireAuth(true);
+    initSidebar({ role: 'admin', activePage: 'test_questions', profile });
+
+    let selectedTopicId = null;
+    let questions = [];
+
+    // ── Bulk Import helpers ──────────────────────────────────────────
+    const FIELD_MAP = {
+      TYPE: 'type', type: 'type',
+      QUESTION_TEXT: 'questionText', question_text: 'questionText', questionText: 'questionText',
+      Answer_Options: 'options', answer_options: 'options', options: 'options', Options: 'options',
+      Correct_Answer: 'correctAnswer', correct_answer: 'correctAnswer', correctAnswer: 'correctAnswer',
+      Explanation: 'explanation', explanation: 'explanation',
+      Difficulty: 'difficulty', difficulty: 'difficulty',
+    };
+
+    const TYPE_MAP = { MCQ: 'mcq', mcq: 'mcq', FILL_BLANK: 'fill_blank', fill_blank: 'fill_blank', 'Fill in the Blank': 'fill_blank' };
+    const DIFF_MAP = { Easy: 'easy', EASY: 'easy', Medium: 'medium', MEDIUM: 'medium', Hard: 'hard', HARD: 'hard' };
+
+    function normalizeQuestion(raw) {
+      const q = {};
+      for (const [key, val] of Object.entries(raw)) {
+        const mapped = FIELD_MAP[key];
+        if (mapped) q[mapped] = val;
+      }
+      if (q.type) q.type = TYPE_MAP[q.type] || q.type.toLowerCase();
+      if (q.difficulty) q.difficulty = DIFF_MAP[q.difficulty] || q.difficulty.toLowerCase();
+      if (typeof q.options === 'string') {
+        try { q.options = JSON.parse(q.options); } catch { q.options = [q.options]; }
+      }
+      if (!q.type) q.type = 'mcq';
+      if (!q.difficulty) q.difficulty = 'medium';
+      if (!q.explanation) q.explanation = '';
+      return q;
+    }
+
+    // Load topics
+    try {
+      const topics = await api.get('/topics');
+      const sel = document.getElementById('topic-select');
+      topics.forEach(t => { const o = document.createElement('option'); o.value=t.id; o.textContent=t.name; sel.appendChild(o); });
+    } catch (_) {}
+
+    document.getElementById('topic-select').addEventListener('change', (e) => {
+      selectedTopicId = e.target.value || null;
+      document.getElementById('btn-new-q').disabled = !selectedTopicId;
+      document.getElementById('btn-bulk-import').disabled = !selectedTopicId;
+      if (selectedTopicId) loadQuestions();
+      else document.getElementById('q-list').innerHTML = '<div style="color:var(--text-muted);">Select a topic to see test questions.</div>';
+    });
+
+    async function loadQuestions() {
+      try {
+        questions = await api.get(`/question-for-test?topicId=${selectedTopicId}`);
+        renderQuestions();
+      } catch (e) { showAlert(e.message); }
+    }
+
+    const diffColor = { easy: 'badge-green', medium: 'badge-yellow', hard: 'badge-red' };
+
+    function renderQuestions() {
+      const container = document.getElementById('q-list');
+      if (!questions.length) {
+        container.innerHTML = `<div class="alert alert-info">No test questions yet for this topic.</div>`;
+        return;
+      }
+      container.innerHTML = questions.map((q, i) => `
+        <div class="card card-${i%3===0?'red':i%3===1?'blue':'yellow'}" style="margin-bottom:0.75rem;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;">
+            <div style="flex:1;">
+              <div style="display:flex;gap:0.5rem;margin-bottom:0.4rem;">
+                <span class="badge badge-blue">${q.type === 'mcq' ? 'MCQ' : 'Fill blank'}</span>
+                <span class="badge ${diffColor[q.difficulty] || 'badge-muted'}">${q.difficulty}</span>
+              </div>
+              <div style="font-weight:600;margin-bottom:0.25rem;">${q.questionText}</div>
+              ${q.type==='mcq' && q.options?.length ? `<div style="font-size:0.8rem;color:var(--text-muted);">Options: ${q.options.join(' · ')}</div>` : ''}
+              <div style="font-size:0.8rem;color:#22c55e;margin-top:0.25rem;">✓ ${q.correctAnswer}</div>
+            </div>
+            <div style="display:flex;gap:0.5rem;flex-shrink:0;">
+              <button class="btn btn-ghost btn-sm" onclick="openEdit('${q.id}')">Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteQ('${q.id}')">Delete</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function showAlert(msg, type = 'error') {
+      const area = document.getElementById('alert-area');
+      area.innerHTML = `<div class="alert alert-${type}" style="margin-bottom:1rem;">${msg}</div>`;
+      setTimeout(() => { area.innerHTML = ''; }, 4000);
+    }
+
+    // Type toggle
+    document.querySelectorAll('input[name="q-type"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        const isMCQ = radio.value === 'mcq';
+        document.getElementById('mcq-section').style.display  = isMCQ ? 'block' : 'none';
+        document.getElementById('fill-section').style.display = isMCQ ? 'none'  : 'block';
+      });
+    });
+
+    const modal = document.getElementById('q-modal');
+    function closeModal() {
+      modal.classList.remove('active');
+      document.getElementById('q-form').reset();
+      document.getElementById('q-id').value = '';
+      document.getElementById('form-error').style.display = 'none';
+      document.getElementById('mcq-section').style.display  = 'block';
+      document.getElementById('fill-section').style.display = 'none';
+      document.getElementById('modal-title').textContent = 'Add Test Question';
+      document.getElementById('form-submit-btn').textContent = 'Add Question';
+    }
+
+    document.getElementById('btn-new-q').addEventListener('click',     () => modal.classList.add('active'));
+    document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+    document.getElementById('modal-cancel').addEventListener('click',    closeModal);
+
+    // ── Bulk Import Modal ────────────────────────────────────────────
+    const bulkModal = document.getElementById('bulk-modal');
+
+    function closeBulkModal() {
+      bulkModal.classList.remove('active');
+      document.getElementById('bulk-json-input').value = '';
+      document.getElementById('bulk-parse-error').style.display = 'none';
+      document.getElementById('bulk-result').style.display = 'none';
+      const btn = document.getElementById('bulk-submit-btn');
+      btn.disabled = false;
+      btn.textContent = 'Import Questions';
+      btn.onclick = null;
+      importDone = false;
+    }
+
+    document.getElementById('btn-bulk-import').addEventListener('click', () => bulkModal.classList.add('active'));
+    document.getElementById('bulk-modal-close').addEventListener('click', closeBulkModal);
+    document.getElementById('bulk-modal-cancel').addEventListener('click', closeBulkModal);
+
+    let importDone = false;
+
+    document.getElementById('bulk-submit-btn').addEventListener('click', async () => {
+      if (importDone) { closeBulkModal(); return; }
+      const parseErrEl  = document.getElementById('bulk-parse-error');
+      const resultEl    = document.getElementById('bulk-result');
+      const submitBtn   = document.getElementById('bulk-submit-btn');
+      parseErrEl.style.display = 'none';
+      resultEl.style.display   = 'none';
+
+      const raw = document.getElementById('bulk-json-input').value.trim();
+      if (!raw) {
+        parseErrEl.textContent = 'Please paste JSON data first.';
+        parseErrEl.style.display = 'block';
+        return;
+      }
+
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) parsed = [parsed];
+      } catch (err) {
+        parseErrEl.textContent = `Invalid JSON: ${err.message}`;
+        parseErrEl.style.display = 'block';
+        return;
+      }
+
+      const normalizedQuestions = parsed.map(normalizeQuestion);
+
+      const validationErrors = [];
+      normalizedQuestions.forEach((q, i) => {
+        if (!q.questionText)  validationErrors.push(`Q${i+1}: missing QUESTION_TEXT`);
+        if (!q.correctAnswer) validationErrors.push(`Q${i+1}: missing Correct_Answer`);
+        if (q.type === 'mcq' && (!q.options || q.options.length < 2))
+          validationErrors.push(`Q${i+1}: MCQ needs at least 2 Answer_Options`);
+      });
+
+      if (validationErrors.length) {
+        parseErrEl.innerHTML = validationErrors.map(e => `<div>⚠ ${e}</div>`).join('');
+        parseErrEl.style.display = 'block';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = `Importing ${normalizedQuestions.length} test question(s)…`;
+
+      try {
+        const res = await api.post('/question-for-test/bulk', {
+          topicId: selectedTopicId,
+          questions: normalizedQuestions,
+        });
+
+        let html = `<div style="padding:0.75rem;border-radius:6px;background:var(--surface-alt,#1a1a1a);border:1px solid var(--border);">`;
+        html += `<div style="font-weight:700;margin-bottom:0.4rem;">Import Complete</div>`;
+        html += `<div style="color:#22c55e;">✓ ${res.imported} question(s) imported</div>`;
+        if (res.failed > 0) {
+          html += `<div style="color:#ef4444;margin-top:0.25rem;">✗ ${res.failed} failed</div>`;
+          res.errors.forEach(e => { html += `<div style="font-size:0.8rem;color:var(--text-muted);">${e}</div>`; });
+        }
+        html += `</div>`;
+        resultEl.innerHTML = html;
+        resultEl.style.display = 'block';
+
+        const imported = Number(res.imported ?? 0);
+        const failed   = Number(res.failed   ?? 0);
+        showAlert(`Bulk import done: ${imported} added, ${failed} failed.`,
+                  failed === 0 ? 'success' : 'error');
+        loadQuestions();
+        importDone = true;
+        submitBtn.textContent = 'Done ✓ — Close';
+        submitBtn.disabled = false;
+      } catch (err) {
+        parseErrEl.textContent = err.message;
+        parseErrEl.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Import Questions';
+      }
+    });
+
+    window.openEdit = (id) => {
+      const q = questions.find(x => x.id === id);
+      if (!q) return;
+      document.getElementById('q-id').value         = q.id;
+      document.getElementById('q-text').value        = q.questionText;
+      document.getElementById('q-explanation').value = q.explanation || '';
+      document.getElementById('q-difficulty').value  = q.difficulty;
+      document.querySelectorAll('input[name="q-type"]').forEach(r => { r.checked = r.value === q.type; });
+
+      if (q.type === 'mcq') {
+        document.getElementById('mcq-section').style.display  = 'block';
+        document.getElementById('fill-section').style.display = 'none';
+        (q.options || []).forEach((opt, i) => { const el = document.getElementById(`opt-${i}`); if(el) el.value=opt; });
+        document.getElementById('correct-mcq').value = q.correctAnswer;
+      } else {
+        document.getElementById('mcq-section').style.display  = 'none';
+        document.getElementById('fill-section').style.display = 'block';
+        document.getElementById('correct-fill').value = q.correctAnswer;
+      }
+      document.getElementById('modal-title').textContent = 'Edit Test Question';
+      document.getElementById('form-submit-btn').textContent = 'Save Changes';
+      modal.classList.add('active');
+    };
+
+    window.deleteQ = async (id) => {
+      if (!confirm('Delete this test question?')) return;
+      try {
+        await api.delete(`/question-for-test/${id}`);
+        showAlert('Test question deleted.', 'success');
+        loadQuestions();
+      } catch (e) { showAlert(e.message); }
+    };
+
+    document.getElementById('q-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl  = document.getElementById('form-error');
+      const subBtn = document.getElementById('form-submit-btn');
+      errEl.style.display = 'none';
+      subBtn.disabled = true;
+
+      const qtype = document.querySelector('input[name="q-type"]:checked').value;
+      const id    = document.getElementById('q-id').value;
+
+      let options = null, correctAnswer = '';
+      if (qtype === 'mcq') {
+        options = [0,1,2,3].map(i => document.getElementById(`opt-${i}`).value.trim()).filter(Boolean);
+        correctAnswer = document.getElementById('correct-mcq').value.trim();
+        if (options.length < 2) { errEl.textContent='Enter at least 2 options.'; errEl.style.display='block'; subBtn.disabled=false; return; }
+        if (!correctAnswer)     { errEl.textContent='Enter the correct answer.'; errEl.style.display='block'; subBtn.disabled=false; return; }
+      } else {
+        correctAnswer = document.getElementById('correct-fill').value.trim();
+        if (!correctAnswer) { errEl.textContent='Enter the correct answer.'; errEl.style.display='block'; subBtn.disabled=false; return; }
+      }
+
+      const body = {
+        topicId: selectedTopicId,
+        type: qtype,
+        questionText: document.getElementById('q-text').value.trim(),
+        options,
+        correctAnswer,
+        explanation: document.getElementById('q-explanation').value.trim(),
+        difficulty:  document.getElementById('q-difficulty').value,
+      };
+
+      try {
+        if (id) await api.put(`/question-for-test/${id}`, body);
+        else    await api.post('/question-for-test', body);
+        closeModal();
+        showAlert(id ? 'Test question updated.' : 'Test question added.', 'success');
+        loadQuestions();
+      } catch (err) {
+        errEl.textContent = err.message; errEl.style.display = 'block';
+      } finally { subBtn.disabled = false; }
+    });
+  </script>
+</body>
+</html>
