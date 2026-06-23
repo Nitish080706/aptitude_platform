@@ -43,18 +43,17 @@ def get_train_questions(
 ):
     """
     Return questions for a topic **without** the correctAnswer field.
-    Pulls from BOTH 'questions' (general bank) AND 'question_for_test' collections
-    so the train session includes every question tied to this topic.
+    Pulls only from the 'questions' (general bank) collection.
     Intended for the Train mode — no attempt data is recorded.
     Accessible by any authenticated user (not admin-only).
     """
     db = get_firestore()
     results = []
-    seen_ids: set = set()
 
-    def extract_question(doc) -> Dict[str, Any]:
+    docs = db.collection("questions").where("topicId", "==", topicId).stream()
+    for doc in docs:
         data = doc.to_dict()
-        return {
+        results.append({
             "id":             doc.id,
             "questionText":   data.get("questionText", ""),
             "type":           data.get("type", "mcq"),
@@ -62,19 +61,7 @@ def get_train_questions(
             "explanation":    data.get("explanation", ""),
             "difficulty":     data.get("difficulty", "medium"),
             "_correctAnswer": data.get("correctAnswer", ""),  # revealed client-side after submit
-        }
-
-    # ── Collection 1: general question bank ──────────────────────────
-    for doc in db.collection("questions").where("topicId", "==", topicId).stream():
-        if doc.id not in seen_ids:
-            seen_ids.add(doc.id)
-            results.append(extract_question(doc))
-
-    # ── Collection 2: test-specific questions ─────────────────────────
-    for doc in db.collection("question_for_test").where("topicId", "==", topicId).stream():
-        if doc.id not in seen_ids:
-            seen_ids.add(doc.id)
-            results.append(extract_question(doc))
+        })
 
     if shuffle:
         random.shuffle(results)
