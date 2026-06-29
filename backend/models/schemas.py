@@ -270,3 +270,61 @@ class AdminStats(BaseModel):
     totalAttempts: int
     testStats: List[TestStat]
     mostAttemptedTest: Optional[TestStat]
+
+
+# ─── Paragraph Recall ─────────────────────────────────────────────────────────
+
+class ParagraphRecallCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=300)
+    description: str = Field(default="")
+    paragraph: str = Field(..., min_length=10)
+    readDuration: int = Field(..., gt=0, description="Seconds the paragraph is visible")
+    writeDuration: int = Field(default=540, gt=0, description="Seconds user has to write (default 540)")
+    isActive: bool = False
+
+
+class ParagraphRecallUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=300)
+    description: Optional[str] = None
+    paragraph: Optional[str] = Field(None, min_length=10)
+    readDuration: Optional[int] = Field(None, gt=0)
+    writeDuration: Optional[int] = Field(None, gt=0)
+    isActive: Optional[bool] = None
+
+
+class ParagraphRecallOut(BaseModel):
+    id: str
+    title: str
+    description: str
+    paragraph: Optional[str] = None   # omitted for user-facing list
+    readDuration: int
+    writeDuration: int
+    isActive: bool
+    createdBy: str
+    createdAt: Any
+
+
+class ParagraphRecallAttemptSubmit(BaseModel):
+    userText: str = Field(..., min_length=1)
+    groqApiKey: str = Field(..., min_length=1)
+    model: str = Field(..., min_length=1)
+
+
+class ParagraphRecallAttemptResult(BaseModel):
+    attemptId: str
+    challengeId: str
+    score: int
+    feedback: str
+    originalParagraph: str
+    userText: str
+    submittedAt: str
+
+
+class ParagraphRecallAttemptHistoryItem(BaseModel):
+    attemptId: str
+    challengeId: str
+    challengeTitle: str
+    submittedAt: Any
+    score: int
+    feedback: str
+    model: str

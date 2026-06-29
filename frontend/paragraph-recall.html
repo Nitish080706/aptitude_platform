@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paragraph Recall — Sophía Study</title>
+  <meta name="description"
+    content="Test your memory and comprehension. Read a paragraph, then recall it from memory." />
+  <link rel="stylesheet" href="/css/sophia.css" />
+  <link rel="stylesheet" href="/css/sidebar.css" />
+  <link rel="stylesheet" href="/css/components.css" />
+  <style>
+    /* ══════════════════════════════════════════════════
+       PARAGRAPH RECALL — USER PAGE STYLES
+    ══════════════════════════════════════════════════ */
+
+    /* ── Challenge cards on listing screen ── */
+    .pr-challenge-card {
+      border: 2px solid var(--border);
+      background: var(--bg-surface);
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+    }
+
+    .pr-challenge-card:hover {
+      border-color: var(--primary-blue);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+    }
+
+    .pr-challenge-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      gap: 1rem;
+    }
+
+    .pr-challenge-title {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .pr-challenge-meta {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .pr-challenge-meta span {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    /* ── API Key Setup Overlay ── */
+    #api-setup-screen {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 2rem 0;
+    }
+
+    .setup-card {
+      border: 2px solid var(--border);
+      background: var(--bg-surface);
+      padding: 2rem;
+    }
+
+    .setup-logo {
+      font-size: 2.5rem;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .setup-title {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.3rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .setup-subtitle {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      text-align: center;
+      margin-bottom: 1.75rem;
+      line-height: 1.6;
+    }
+
+    .groq-logo-text {
+      background: linear-gradient(135deg, #f97316, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-family: 'Archivo Black', sans-serif;
+    }
+
+    /* ── Challenge Preview Modal ── */
+    #challenge-preview-screen {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .preview-card {
+      border: 2px solid var(--border);
+      background: var(--bg-surface);
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .preview-title {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.2rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .preview-desc {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .preview-timer-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .timer-info-box {
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .timer-info-box .label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+
+    .timer-info-box .value {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.3rem;
+    }
+
+    .timer-info-box.read-box .value {
+      color: var(--primary-blue);
+    }
+
+    .timer-info-box.write-box .value {
+      color: var(--primary-yellow);
+    }
+
+    /* ── Active Challenge Screen ── */
+    #active-challenge-screen {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* Phase badge */
+    .phase-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.35rem 0.85rem;
+      border: 2px solid;
+      margin-bottom: 1.25rem;
+    }
+
+    .phase-badge.read-phase {
+      border-color: var(--primary-blue);
+      color: var(--primary-blue);
+    }
+
+    .phase-badge.write-phase {
+      border-color: var(--primary-yellow);
+      color: var(--primary-yellow);
+    }
+
+    /* Timer display */
+    .timer-display {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      padding: 1rem 1.5rem;
+      border: 2px solid var(--border);
+      background: var(--bg-surface);
+    }
+
+    .timer-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .timer-countdown {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 2rem;
+      letter-spacing: 0.05em;
+      transition: color 0.3s;
+    }
+
+    .timer-countdown.urgent {
+      color: var(--primary-red);
+      animation: pulse-urgent 0.6s ease infinite alternate;
+    }
+
+    @keyframes pulse-urgent {
+      from {
+        opacity: 1;
+      }
+
+      to {
+        opacity: 0.5;
+      }
+    }
+
+    .timer-progress {
+      height: 4px;
+      background: var(--bg-raised);
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+
+    .timer-progress-bar {
+      height: 100%;
+      transition: width 1s linear, background 0.5s;
+      background: var(--primary-blue);
+    }
+
+    .timer-progress-bar.write {
+      background: var(--primary-yellow);
+    }
+
+    .timer-progress-bar.urgent {
+      background: var(--primary-red);
+    }
+
+    /* Paragraph display */
+    .paragraph-display-card {
+      border: 2px solid var(--primary-blue);
+      background: var(--bg-surface);
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+      line-height: 1.8;
+      font-size: 1rem;
+      position: relative;
+    }
+
+    .paragraph-display-card::before {
+      content: '📖 MEMORIZE THIS';
+      position: absolute;
+      top: -1px;
+      left: 1.25rem;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      background: var(--primary-blue);
+      color: #fff;
+      padding: 0.15rem 0.6rem;
+      transform: translateY(-50%);
+    }
+
+    /* Write area */
+    .write-area-card {
+      border: 2px solid var(--primary-yellow);
+      background: var(--bg-surface);
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .write-area-card::before {
+      content: '✍️ YOUR RECALL';
+      position: absolute;
+      top: -1px;
+      left: 1.25rem;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      background: var(--primary-yellow);
+      color: #111;
+      padding: 0.15rem 0.6rem;
+      transform: translateY(-50%);
+    }
+
+    .recall-textarea {
+      width: 100%;
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 1rem;
+      font-family: 'Archivo', sans-serif;
+      font-size: 0.95rem;
+      line-height: 1.7;
+      resize: vertical;
+      min-height: 200px;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+
+    .recall-textarea:focus {
+      outline: none;
+      border-color: var(--primary-yellow);
+    }
+
+    .write-hint {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      line-height: 1.5;
+    }
+
+    /* ── Results Screen ── */
+    #results-screen {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .score-ring-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 2rem;
+    }
+
+    .score-ring {
+      position: relative;
+      width: 160px;
+      height: 160px;
+    }
+
+    .score-ring svg {
+      transform: rotate(-90deg);
+      width: 160px;
+      height: 160px;
+    }
+
+    .score-ring-bg {
+      fill: none;
+      stroke: var(--bg-raised);
+      stroke-width: 12;
+    }
+
+    .score-ring-fill {
+      fill: none;
+      stroke-width: 12;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1.2s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    .score-ring-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .score-ring-number {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 2.2rem;
+      line-height: 1;
+    }
+
+    .score-ring-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .feedback-card {
+      border: 2px solid var(--border);
+      background: var(--bg-surface);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .feedback-label {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .comparison-panel {
+      border: 2px solid var(--border);
+      background: var(--bg-surface);
+      padding: 1.25rem;
+    }
+
+    .comparison-panel-label {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.75rem;
+    }
+
+    .comparison-panel.original-panel .comparison-panel-label {
+      color: var(--primary-blue);
+    }
+
+    .comparison-panel.recall-panel .comparison-panel-label {
+      color: var(--primary-yellow);
+    }
+
+    .comparison-text {
+      font-size: 0.82rem;
+      line-height: 1.7;
+      color: var(--text-muted);
+      max-height: 160px;
+      overflow-y: auto;
+    }
+
+    /* ── API Setup within challenge preview ── */
+    .api-section {
+      border: 2px solid var(--border);
+      background: var(--bg-raised);
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .api-section-title {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .api-saved-badge {
+      font-size: 0.7rem;
+      background: #22c55e22;
+      color: #22c55e;
+      border: 1px solid #22c55e;
+      padding: 0.15rem 0.5rem;
+      letter-spacing: 0.06em;
+    }
+
+    /* ── Loading/scoring overlay ── */
+    .scoring-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      gap: 1.5rem;
+    }
+
+    .scoring-spinner {
+      width: 56px;
+      height: 56px;
+      border: 4px solid var(--bg-raised);
+      border-top: 4px solid var(--primary-yellow);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .scoring-text {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--primary-yellow);
+      text-align: center;
+    }
+
+    .scoring-sub {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* ── Misc ── */
+    .screen-hidden {
+      display: none !important;
+    }
+
+    .score-excellent {
+      color: #22c55e;
+    }
+
+    .score-good {
+      color: var(--primary-yellow);
+    }
+
+    .score-average {
+      color: #f97316;
+    }
+
+    .score-poor {
+      color: var(--primary-red);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+  <div class="app-shell">
+    <nav id="sidebar" class="sidebar" role="navigation"></nav>
+    <div>
+      <header class="topbar">
+        <button class="hamburger" id="hamburger"
+          aria-label="Open navigation"><span></span><span></span><span></span></button>
+        <span style="font-family:'Archivo Black',sans-serif;font-size:0.9rem;text-transform:uppercase;">/*\ Paragraph
+          Recall</span>
+        <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+      </header>
+
+      <main class="main-content">
+
+        <!-- ════════════════════════════════════════
+             SCREEN 0: Challenge Listing
+        ════════════════════════════════════════ -->
+        <div id="listing-screen">
+          <div class="page-header flex justify-between items-center">
+            <div>
+              <div class="overline">Cognitive Training</div>
+              <h1>Paragraph Recall</h1>
+            </div>
+            <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+          </div>
+          <p style="color:var(--text-muted);margin-bottom:2rem;max-width:600px;line-height:1.6;">
+            Read a paragraph carefully. When time is up, recall as much as you can.
+            Your response is scored by AI against the original.
+          </p>
+          <div id="challenges-grid">
+            <div style="color:var(--text-muted);">Loading challenges…</div>
+          </div>
+        </div>
+
+        <!-- ════════════════════════════════════════
+             SCREEN 1: API Key + Model Setup
+        ════════════════════════════════════════ -->
+        <div id="api-setup-screen" class="screen-hidden">
+          <div style="margin-bottom:1.5rem;">
+            <button class="btn btn-ghost btn-sm" id="btn-back-from-setup">← Back</button>
+          </div>
+          <div class="setup-card">
+            <div class="setup-logo">⚡</div>
+            <div class="setup-title">Connect <span class="groq-logo-text">Groq</span> AI</div>
+            <div class="setup-subtitle">
+              A Groq API key is required to score your recall attempt using AI.<br />
+              Your key is saved locally and never sent to our servers except Groq directly.
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="groq-api-key-input">Groq API Key</label>
+              <input class="form-input" type="password" id="groq-api-key-input" placeholder="gsk_…"
+                autocomplete="off" />
+              <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.35rem;">
+                Get your free key at <a href="https://console.groq.com" target="_blank" rel="noopener"
+                  style="color:var(--primary-blue);">console.groq.com</a>
+              </div>
+            </div>
+            <div id="api-error" class="form-error" style="display:none;margin-bottom:0.75rem;"></div>
+            <button class="btn btn-primary w-full" id="btn-fetch-models" style="margin-bottom:1rem;">
+              Fetch Models →
+            </button>
+
+            <!-- Model selector (hidden until fetched) -->
+            <div id="model-selector-wrap" style="display:none;">
+              <div class="form-group">
+                <label class="form-label" for="groq-model-select">Select Model</label>
+                <select class="form-select" id="groq-model-select"></select>
+              </div>
+              <button class="btn btn-primary w-full" id="btn-proceed-to-challenge">
+                Continue to Challenge →
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ════════════════════════════════════════
+             SCREEN 2: Challenge Preview & Start
+        ════════════════════════════════════════ -->
+        <div id="challenge-preview-screen" class="screen-hidden">
+          <div style="margin-bottom:1.5rem;">
+            <button class="btn btn-ghost btn-sm" id="btn-back-from-preview">← Back to Challenges</button>
+          </div>
+          <div class="preview-card">
+            <div class="preview-title" id="preview-challenge-title">—</div>
+            <div class="preview-desc" id="preview-challenge-desc"></div>
+            <div class="preview-timer-info">
+              <div class="timer-info-box read-box">
+                <div class="label">📖 Read Phase</div>
+                <div class="value" id="preview-read-time">—</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.25rem;">paragraph visible</div>
+              </div>
+              <div class="timer-info-box write-box">
+                <div class="label">✍️ Write Phase</div>
+                <div class="value" id="preview-write-time">—</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.25rem;">to recall from memory</div>
+              </div>
+            </div>
+
+            <!-- API & Model display -->
+            <div class="api-section">
+              <div class="api-section-title">
+                ⚡ Groq AI Setup
+                <span class="api-saved-badge" id="api-saved-indicator" style="display:none;">✓ Key Saved</span>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr auto;gap:0.75rem;align-items:end;">
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label" for="preview-api-key" style="font-size:0.78rem;">Groq API Key</label>
+                  <input class="form-input" type="password" id="preview-api-key" placeholder="gsk_…"
+                    style="font-size:0.85rem;" />
+                </div>
+                <button class="btn btn-ghost btn-sm" id="btn-load-models-preview"
+                  style="white-space:nowrap;padding:0.6rem 1rem;">Load Models</button>
+              </div>
+              <div class="form-group" style="margin-top:0.75rem;margin-bottom:0;">
+                <label class="form-label" for="preview-model-select" style="font-size:0.78rem;">Model</label>
+                <select class="form-select" id="preview-model-select" style="font-size:0.85rem;">
+                  <option value="">— Load models first —</option>
+                </select>
+              </div>
+              <div id="preview-api-error" class="form-error" style="display:none;margin-top:0.5rem;"></div>
+            </div>
+
+            <button class="btn btn-primary w-full" id="btn-start-challenge"
+              style="padding:1rem;font-size:1rem;letter-spacing:0.05em;">
+              ▶ Start Challenge
+            </button>
+          </div>
+        </div>
+
+        <!-- ════════════════════════════════════════
+             SCREEN 3: Active Challenge
+        ════════════════════════════════════════ -->
+        <div id="active-challenge-screen" class="screen-hidden">
+          <!-- Timer bar -->
+          <div class="timer-progress" id="timer-progress-bar-wrap">
+            <div class="timer-progress-bar" id="timer-progress-bar" style="width:100%;"></div>
+          </div>
+
+          <div
+            style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:1rem;">
+            <div>
+              <div id="phase-badge" class="phase-badge read-phase">📖 READ PHASE</div>
+              <div id="active-challenge-title"
+                style="font-family:'Archivo Black',sans-serif;font-size:1.1rem;text-transform:uppercase;letter-spacing:0.04em;">
+              </div>
+            </div>
+            <div class="timer-display" style="min-width:200px;margin:0;">
+              <div>
+                <div class="timer-label" id="timer-phase-label">Read Time Remaining</div>
+                <div class="timer-countdown" id="timer-countdown">—</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- READ PHASE: paragraph display -->
+          <div id="read-phase-content">
+            <div class="paragraph-display-card" id="paragraph-display-text"></div>
+            <div style="text-align:center;color:var(--text-muted);font-size:0.85rem;">
+              The paragraph will disappear when the timer ends. Focus on key details and structure.
+            </div>
+          </div>
+
+          <!-- WRITE PHASE: recall textarea -->
+          <div id="write-phase-content" style="display:none;">
+            <div
+              style="margin-bottom:1rem;padding:0.75rem 1rem;background:var(--bg-raised);border-left:3px solid var(--primary-yellow);font-size:0.85rem;color:var(--text-muted);">
+              The paragraph is now hidden. Type everything you can remember below.
+            </div>
+            <div class="write-area-card">
+              <textarea class="recall-textarea" id="recall-textarea"
+                placeholder="Start typing what you remember from the paragraph…" autofocus></textarea>
+              <div class="write-hint">
+                Don't worry about perfection — type what you understood and remember.
+                The AI evaluates key information, meaning, and structure.
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+              <div style="font-size:0.8rem;color:var(--text-muted);" id="write-word-count">0 words typed</div>
+              <button class="btn btn-primary" id="btn-end-submit" style="padding:0.75rem 2rem;font-size:0.95rem;">
+                Submit Recall ✓
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ════════════════════════════════════════
+             SCREEN 4: Results
+        ════════════════════════════════════════ -->
+        <div id="results-screen" class="screen-hidden">
+          <div class="page-header">
+            <div class="overline">Recall Complete</div>
+            <h1>Your Result</h1>
+          </div>
+
+          <!-- Score ring -->
+          <div class="score-ring-wrap">
+            <div class="score-ring">
+              <svg viewBox="0 0 160 160">
+                <circle class="score-ring-bg" cx="80" cy="80" r="68" />
+                <circle class="score-ring-fill" id="score-ring-fill" cx="80" cy="80" r="68" stroke-dasharray="427.26"
+                  stroke-dashoffset="427.26" />
+              </svg>
+              <div class="score-ring-label">
+                <div class="score-ring-number" id="result-score-num">—</div>
+                <div class="score-ring-sub">/ 100</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feedback -->
+          <div class="feedback-card">
+            <div class="feedback-label">🤖 AI Feedback</div>
+            <div id="result-feedback" style="line-height:1.7;font-size:0.9rem;"></div>
+          </div>
+
+          <!-- Side-by-side comparison -->
+          <div
+            style="font-family:'Archivo Black',sans-serif;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.75rem;color:var(--text-muted);">
+            Paragraph Comparison
+          </div>
+          <div class="comparison-grid" id="comparison-grid">
+            <div class="comparison-panel original-panel">
+              <div class="comparison-panel-label">📄 Original</div>
+              <div class="comparison-text" id="result-original-text"></div>
+            </div>
+            <div class="comparison-panel recall-panel">
+              <div class="comparison-panel-label">✍️ Your Recall</div>
+              <div class="comparison-text" id="result-user-text"></div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1.5rem;">
+            <button class="btn btn-primary" id="btn-try-again">↩ Try Again</button>
+            <a href="/paragraph-recall.html" class="btn btn-ghost">← All Challenges</a>
+            <a href="/history.html" class="btn btn-ghost">View My History</a>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Scoring overlay -->
+  <div class="scoring-overlay screen-hidden" id="scoring-overlay">
+    <div class="scoring-spinner"></div>
+    <div class="scoring-text">/*\ AI is scoring your recall…</div>
+    <div class="scoring-sub">Comparing your response with the original paragraph</div>
+  </div>
+
+  <script type="module">
+    import { initTheme } from '/js/theme.js';
+    import { requireAuth } from '/js/auth.js';
+    import { initSidebar } from '/js/sidebar.js';
+    import { api } from '/js/api.js';
+
+    initTheme();
+    const profile = await requireAuth();
+    initSidebar({ role: profile.role, activePage: 'paragraph_recall', profile });
+
+    // ══════════════════════════════════════════════════
+    // STATE
+    // ══════════════════════════════════════════════════
+    let allChallenges = [];
+    let currentChallenge = null;   // selected challenge object
+    let groqApiKey = '';
+    let groqModel = '';
+    let readTimer = null;
+    let writeTimer = null;
+    let readSecondsLeft = 0;
+    let writeSecondsLeft = 0;
+
+    const STORAGE_KEY_API = 'sophia_groq_api_key';
+    const STORAGE_KEY_MODEL = 'sophia_groq_model';
+
+    // ══════════════════════════════════════════════════
+    // SCREEN SWITCHER
+    // ══════════════════════════════════════════════════
+    const SCREENS = ['listing-screen', 'api-setup-screen', 'challenge-preview-screen', 'active-challenge-screen', 'results-screen'];
+    function showScreen(id) {
+      SCREENS.forEach(sid => {
+        const el = document.getElementById(sid);
+        if (el) el.classList.toggle('screen-hidden', sid !== id);
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ══════════════════════════════════════════════════
+    // HELPERS
+    // ══════════════════════════════════════════════════
+    function fmtTime(secs) {
+      const m = Math.floor(secs / 60);
+      const s = secs % 60;
+      return m > 0 ? `${m}m ${s.toString().padStart(2, '0')}s` : `${s}s`;
+    }
+    function fmtCountdown(secs) {
+      const m = Math.floor(secs / 60).toString().padStart(2, '0');
+      const s = (secs % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+    function escHtml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // ══════════════════════════════════════════════════
+    // GROQ API KEY — localStorage
+    // ══════════════════════════════════════════════════
+    function loadStoredKey() {
+      const key = localStorage.getItem(STORAGE_KEY_API) || '';
+      const model = localStorage.getItem(STORAGE_KEY_MODEL) || '';
+      return { key, model };
+    }
+    function saveKey(key, model) {
+      if (key) localStorage.setItem(STORAGE_KEY_API, key);
+      if (model) localStorage.setItem(STORAGE_KEY_MODEL, model);
+    }
+
+    // ══════════════════════════════════════════════════
+    // SCREEN 0: LISTING
+    // ══════════════════════════════════════════════════
+    async function loadChallenges() {
+      try {
+        allChallenges = await api.get('/paragraph-recall/active');
+        renderChallengeList();
+      } catch (e) {
+        document.getElementById('challenges-grid').innerHTML =
+          `<div class="alert alert-error">${e.message}</div>`;
+      }
+    }
+
+    function renderChallengeList() {
+      const grid = document.getElementById('challenges-grid');
+      if (!allChallenges.length) {
+        grid.innerHTML = `
+          <div style="text-align:center;padding:4rem 2rem;border:2px dashed var(--border);color:var(--text-muted);">
+            <div style="font-size:2.5rem;margin-bottom:1rem;">🧠</div>
+            <div style="font-family:'Archivo Black',sans-serif;font-size:1.1rem;text-transform:uppercase;margin-bottom:0.5rem;">No Challenges Available</div>
+            <div>Check back later — the admin will add new challenges soon.</div>
+          </div>`;
+        return;
+      }
+      grid.innerHTML = allChallenges.map(c => `
+        <div class="pr-challenge-card" onclick="selectChallenge('${c.id}')" id="ch-card-${c.id}">
+          <div class="pr-challenge-card-header">
+            <div class="pr-challenge-title">${escHtml(c.title)}</div>
+            <span class="badge badge-blue">Recall</span>
+          </div>
+          ${c.description ? `<div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.75rem;">${escHtml(c.description)}</div>` : ''}
+          <div class="pr-challenge-meta">
+            <span>📖 Read: <strong>${fmtTime(c.readDuration)}</strong></span>
+            <span>✍️ Write: <strong>${fmtTime(c.writeDuration)}</strong></span>
+          </div>
+          <div style="margin-top:0.75rem;">
+            <span class="btn btn-ghost btn-sm" style="pointer-events:none;">Start Challenge →</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    window.selectChallenge = (id) => {
+      currentChallenge = allChallenges.find(c => c.id === id);
+      if (!currentChallenge) return;
+      openChallengePreview();
+    };
+
+    // ══════════════════════════════════════════════════
+    // SCREEN 2: CHALLENGE PREVIEW
+    // ══════════════════════════════════════════════════
+    function openChallengePreview() {
+      document.getElementById('preview-challenge-title').textContent = currentChallenge.title;
+      document.getElementById('preview-challenge-desc').textContent = currentChallenge.description || '';
+      document.getElementById('preview-read-time').textContent = fmtTime(currentChallenge.readDuration);
+      document.getElementById('preview-write-time').textContent = fmtTime(currentChallenge.writeDuration);
+
+      // Prefill saved API key
+      const { key, model } = loadStoredKey();
+      if (key) {
+        document.getElementById('preview-api-key').value = key;
+        document.getElementById('api-saved-indicator').style.display = '';
+        groqApiKey = key;
+        // Try to load models silently
+        loadModelsForPreview(key, model);
+      }
+
+      showScreen('challenge-preview-screen');
+    }
+
+    // Back button
+    document.getElementById('btn-back-from-preview').addEventListener('click', () => {
+      showScreen('listing-screen');
+    });
+
+    // Load models in preview
+    document.getElementById('btn-load-models-preview').addEventListener('click', async () => {
+      const key = document.getElementById('preview-api-key').value.trim();
+      if (!key) { showPreviewApiError('Please enter your Groq API key.'); return; }
+      await loadModelsForPreview(key, localStorage.getItem(STORAGE_KEY_MODEL) || '');
+    });
+
+    async function loadModelsForPreview(key, preferModel) {
+      const btn = document.getElementById('btn-load-models-preview');
+      const err = document.getElementById('preview-api-error');
+      err.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Loading…';
+      try {
+        const res = await api.post('/paragraph-recall/groq/models', { apiKey: key });
+        const models = res.models || [];
+        const sel = document.getElementById('preview-model-select');
+        sel.innerHTML = models.map(m =>
+          `<option value="${m}" ${m === preferModel ? 'selected' : ''}>${m}</option>`
+        ).join('');
+        if (!models.length) throw new Error('No models returned.');
+        groqApiKey = key;
+        groqModel = sel.value;
+        localStorage.setItem(STORAGE_KEY_API, key);
+        document.getElementById('api-saved-indicator').style.display = '';
+      } catch (e) {
+        showPreviewApiError(e.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Load Models';
+      }
+    }
+
+    document.getElementById('preview-model-select').addEventListener('change', (e) => {
+      groqModel = e.target.value;
+      localStorage.setItem(STORAGE_KEY_MODEL, groqModel);
+    });
+
+    function showPreviewApiError(msg) {
+      const err = document.getElementById('preview-api-error');
+      err.textContent = msg;
+      err.style.display = 'block';
+    }
+
+    // Start button
+    document.getElementById('btn-start-challenge').addEventListener('click', async () => {
+      groqApiKey = document.getElementById('preview-api-key').value.trim();
+      groqModel = document.getElementById('preview-model-select').value;
+
+      if (!groqApiKey) { showPreviewApiError('Please enter your Groq API key.'); return; }
+      if (!groqModel) { showPreviewApiError('Please load and select a Groq model.'); return; }
+
+      saveKey(groqApiKey, groqModel);
+      await startChallenge();
+    });
+
+    // ══════════════════════════════════════════════════
+    // SCREEN 3: ACTIVE CHALLENGE
+    // ══════════════════════════════════════════════════
+    let paragraphText = '';
+
+    async function startChallenge() {
+      // Fetch the paragraph (server-controlled)
+      try {
+        const res = await api.get(`/paragraph-recall/${currentChallenge.id}/paragraph`);
+        paragraphText = res.paragraph || '';
+      } catch (e) {
+        alert('Failed to load challenge paragraph: ' + e.message);
+        return;
+      }
+
+      document.getElementById('active-challenge-title').textContent = currentChallenge.title;
+      document.getElementById('paragraph-display-text').textContent = paragraphText;
+
+      // Reset write area
+      document.getElementById('recall-textarea').value = '';
+      document.getElementById('write-word-count').textContent = '0 words typed';
+
+      // Show read phase
+      document.getElementById('read-phase-content').style.display = '';
+      document.getElementById('write-phase-content').style.display = 'none';
+      document.getElementById('phase-badge').className = 'phase-badge read-phase';
+      document.getElementById('phase-badge').textContent = '📖 READ PHASE';
+      document.getElementById('timer-phase-label').textContent = 'Read Time Remaining';
+
+      showScreen('active-challenge-screen');
+      startReadTimer();
+    }
+
+    function startReadTimer() {
+      readSecondsLeft = currentChallenge.readDuration;
+      const total = readSecondsLeft;
+      updateTimerDisplay(readSecondsLeft, 'read');
+
+      readTimer = setInterval(() => {
+        readSecondsLeft--;
+        updateTimerDisplay(readSecondsLeft, 'read', total);
+        if (readSecondsLeft <= 0) {
+          clearInterval(readTimer);
+          transitionToWrite();
+        }
+      }, 1000);
+    }
+
+    function transitionToWrite() {
+      // Hide paragraph, show write area
+      document.getElementById('read-phase-content').style.display = 'none';
+      document.getElementById('write-phase-content').style.display = '';
+      document.getElementById('phase-badge').className = 'phase-badge write-phase';
+      document.getElementById('phase-badge').textContent = '✍️ WRITE PHASE';
+      document.getElementById('timer-phase-label').textContent = 'Write Time Remaining';
+      document.getElementById('timer-progress-bar').className = 'timer-progress-bar write';
+      document.getElementById('recall-textarea').focus();
+      startWriteTimer();
+    }
+
+    function startWriteTimer() {
+      writeSecondsLeft = currentChallenge.writeDuration;
+      const total = writeSecondsLeft;
+      updateTimerDisplay(writeSecondsLeft, 'write', total);
+
+      writeTimer = setInterval(() => {
+        writeSecondsLeft--;
+        updateTimerDisplay(writeSecondsLeft, 'write', total);
+        if (writeSecondsLeft <= 0) {
+          clearInterval(writeTimer);
+          submitRecall(true); // auto-submit
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay(secs, phase, total) {
+      const countdown = document.getElementById('timer-countdown');
+      const bar = document.getElementById('timer-progress-bar');
+      countdown.textContent = fmtCountdown(secs);
+      const pct = total ? (secs / total) * 100 : 100;
+      bar.style.width = pct + '%';
+
+      const urgent = secs <= 10;
+      countdown.className = 'timer-countdown' + (urgent ? ' urgent' : '');
+      if (phase === 'write') {
+        bar.className = 'timer-progress-bar write' + (urgent ? ' urgent' : '');
+      } else {
+        bar.className = 'timer-progress-bar' + (urgent ? ' urgent' : '');
+      }
+    }
+
+    // Word count in write area
+    document.getElementById('recall-textarea').addEventListener('input', (e) => {
+      const text = e.target.value.trim();
+      const words = text ? text.split(/\s+/).length : 0;
+      document.getElementById('write-word-count').textContent = `${words} word${words !== 1 ? 's' : ''} typed`;
+    });
+
+    // Manual submit button
+    document.getElementById('btn-end-submit').addEventListener('click', () => {
+      clearInterval(writeTimer);
+      submitRecall(false);
+    });
+
+    // ══════════════════════════════════════════════════
+    // SUBMIT & SCORE
+    // ══════════════════════════════════════════════════
+    async function submitRecall(isAutoSubmit) {
+      const userText = document.getElementById('recall-textarea').value.trim();
+      if (!userText && !isAutoSubmit) {
+        if (!confirm('Your recall is empty. Submit anyway?')) return;
+      }
+
+      clearInterval(readTimer);
+      clearInterval(writeTimer);
+
+      // Show scoring overlay
+      document.getElementById('scoring-overlay').classList.remove('screen-hidden');
+
+      try {
+        const result = await api.post(`/paragraph-recall/${currentChallenge.id}/attempt`, {
+          userText: userText || '(no response)',
+          groqApiKey: groqApiKey,
+          model: groqModel,
+        });
+        showResults(result);
+      } catch (e) {
+        document.getElementById('scoring-overlay').classList.add('screen-hidden');
+        alert('Scoring failed: ' + e.message);
+      }
+    }
+
+    // ══════════════════════════════════════════════════
+    // SCREEN 4: RESULTS
+    // ══════════════════════════════════════════════════
+    function showResults(result) {
+      document.getElementById('scoring-overlay').classList.add('screen-hidden');
+      showScreen('results-screen');
+
+      const score = result.score;
+
+      // Score number
+      const numEl = document.getElementById('result-score-num');
+      numEl.textContent = score;
+
+      // Score color
+      let colorClass = 'score-poor';
+      let strokeColor = '#ff5a5f';
+      if (score >= 80) { colorClass = 'score-excellent'; strokeColor = '#22c55e'; }
+      else if (score >= 60) { colorClass = 'score-good'; strokeColor = '#ffc94d'; }
+      else if (score >= 40) { colorClass = 'score-average'; strokeColor = '#f97316'; }
+      numEl.className = 'score-ring-number ' + colorClass;
+
+      // Animate ring
+      const ringFill = document.getElementById('score-ring-fill');
+      const circumference = 427.26;
+      ringFill.setAttribute('stroke', strokeColor);
+      ringFill.style.strokeDashoffset = circumference;
+      setTimeout(() => {
+        ringFill.style.strokeDashoffset = circumference - (score / 100) * circumference;
+      }, 100);
+
+      // Feedback
+      document.getElementById('result-feedback').textContent = result.feedback || '';
+
+      // Comparison
+      document.getElementById('result-original-text').textContent = result.originalParagraph || '';
+      document.getElementById('result-user-text').textContent = result.userText || '(no response)';
+    }
+
+    // Try again
+    document.getElementById('btn-try-again').addEventListener('click', () => {
+      if (currentChallenge) openChallengePreview();
+      else showScreen('listing-screen');
+    });
+
+    // Back from setup
+    document.getElementById('btn-back-from-setup').addEventListener('click', () => {
+      showScreen('listing-screen');
+    });
+
+    // ══════════════════════════════════════════════════
+    // INIT
+    // ══════════════════════════════════════════════════
+    loadChallenges();
+  </script>
+</body>
+
+</html>

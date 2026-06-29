@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Paragraph Recall — Admin · Sophía Study</title>
+  <meta name="description" content="Create and manage Paragraph Recall challenges for students."/>
+  <link rel="stylesheet" href="/css/sophia.css"/>
+  <link rel="stylesheet" href="/css/sidebar.css"/>
+  <link rel="stylesheet" href="/css/components.css"/>
+  <style>
+    /* ── Paragraph Recall Admin Styles ── */
+    .pr-card {
+      border: 2px solid var(--border);
+      background: var(--bg-surface);
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+      position: relative;
+      transition: border-color 0.2s;
+    }
+    .pr-card:hover { border-color: var(--primary-blue); }
+    .pr-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .pr-card-title {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.05rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .pr-card-meta {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .pr-card-meta span {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .pr-paragraph-preview {
+      background: var(--bg-raised);
+      border-left: 3px solid var(--primary-blue);
+      padding: 0.75rem 1rem;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      max-height: 80px;
+      overflow: hidden;
+      position: relative;
+    }
+    .pr-paragraph-preview::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 30px;
+      background: linear-gradient(transparent, var(--bg-raised));
+    }
+    .pr-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    /* Modal textarea */
+    .form-textarea {
+      width: 100%;
+      background: var(--bg-raised);
+      border: 2px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.75rem 1rem;
+      font-family: 'Archivo', sans-serif;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      resize: vertical;
+      min-height: 140px;
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+    }
+    .form-textarea:focus {
+      outline: none;
+      border-color: var(--primary-blue);
+    }
+    /* Timer grid */
+    .timer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .timer-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      border: 2px dashed var(--border);
+      color: var(--text-muted);
+    }
+    .empty-state-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .empty-state-title {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+    /* Word count */
+    .word-count {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-align: right;
+      margin-top: 0.25rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+  <div class="app-shell">
+    <nav id="sidebar" class="sidebar" role="navigation"></nav>
+    <div>
+      <header class="topbar">
+        <button class="hamburger" id="hamburger" aria-label="Open navigation"><span></span><span></span><span></span></button>
+        <span style="font-family:'Archivo Black',sans-serif;font-size:0.9rem;text-transform:uppercase;">Paragraph Recall</span>
+        <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+      </header>
+
+      <main class="main-content">
+        <div class="page-header flex justify-between items-center">
+          <div>
+            <div class="overline">Admin · Cognitive Training</div>
+            <h1>Paragraph Recall</h1>
+          </div>
+          <div style="display:flex;gap:0.75rem;align-items:center;">
+            <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+            <button class="btn btn-primary" id="btn-new-challenge">+ New Challenge</button>
+          </div>
+        </div>
+
+        <div id="alert-area"></div>
+
+        <!-- Stats strip -->
+        <div class="grid grid-3 gap-2" style="margin-bottom:2rem;">
+          <div class="stat-card">
+            <div class="stat-value" id="stat-total">—</div>
+            <div class="stat-label">Total Challenges</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-active">—</div>
+            <div class="stat-label">Active</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-draft">—</div>
+            <div class="stat-label">Drafts</div>
+          </div>
+        </div>
+
+        <!-- Challenges list -->
+        <div id="challenges-list">
+          <div style="color:var(--text-muted);">Loading…</div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ── Challenge Modal ── -->
+  <div class="modal-overlay" id="challenge-modal">
+    <div class="modal" style="max-width:700px;">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-title">New Challenge</div>
+        <button class="modal-close" id="modal-close-btn">✕</button>
+      </div>
+      <form class="modal-form" id="challenge-form">
+        <input type="hidden" id="challenge-id"/>
+
+        <div class="form-group">
+          <label class="form-label" for="ch-title">Challenge Title</label>
+          <input class="form-input" type="text" id="ch-title" required placeholder="e.g. The Industrial Revolution — Paragraph 1"/>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="ch-description">Description <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+          <input class="form-input" type="text" id="ch-description" placeholder="Brief description of the challenge topic"/>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="ch-paragraph">Paragraph Text</label>
+          <textarea class="form-textarea" id="ch-paragraph" required placeholder="Paste or write the paragraph students will need to memorize and recall…" rows="6"></textarea>
+          <div class="word-count" id="word-count">0 words · 0 characters</div>
+        </div>
+
+        <div class="timer-grid">
+          <div class="form-group">
+            <label class="form-label" for="ch-read-duration">📖 Read Duration (seconds)</label>
+            <input class="form-input" type="number" id="ch-read-duration" min="10" max="600" value="60" required/>
+            <div class="timer-hint">Time the paragraph is visible. (10–600 s)</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="ch-write-duration">✍️ Write Duration (seconds)</label>
+            <input class="form-input" type="number" id="ch-write-duration" min="30" max="3600" value="540" required/>
+            <div class="timer-hint">Time user has to type recall. Default: 540 s (9 min)</div>
+          </div>
+        </div>
+
+        <div class="form-group" style="display:flex;align-items:center;gap:0.75rem;">
+          <input type="checkbox" id="ch-is-active" style="width:18px;height:18px;accent-color:var(--primary-yellow);"/>
+          <label class="form-label" for="ch-is-active" style="margin:0;cursor:pointer;">Active (visible to users)</label>
+        </div>
+
+        <div id="form-error" class="form-error" style="display:none;"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="modal-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="form-submit-btn">Create Challenge</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initTheme } from '/js/theme.js';
+    import { requireAuth } from '/js/auth.js';
+    import { initSidebar } from '/js/sidebar.js';
+    import { api } from '/js/api.js';
+
+    initTheme();
+    const profile = await requireAuth(true);
+    initSidebar({ role: 'admin', activePage: 'paragraph_recall', profile });
+
+    let allChallenges = [];
+
+    // ── Word count ────────────────────────────────────────────────────────────
+    const paraEl = document.getElementById('ch-paragraph');
+    const wcEl   = document.getElementById('word-count');
+    paraEl.addEventListener('input', () => {
+      const text  = paraEl.value.trim();
+      const words = text ? text.split(/\s+/).length : 0;
+      const chars = paraEl.value.length;
+      wcEl.textContent = `${words} words · ${chars} characters`;
+    });
+
+    // ── Alert helper ─────────────────────────────────────────────────────────
+    function showAlert(msg, type = 'error') {
+      const area = document.getElementById('alert-area');
+      area.innerHTML = `<div class="alert alert-${type}" style="margin-bottom:1rem;">${msg}</div>`;
+      setTimeout(() => { area.innerHTML = ''; }, 4000);
+    }
+
+    // ── Stats ─────────────────────────────────────────────────────────────────
+    function updateStats() {
+      const total  = allChallenges.length;
+      const active = allChallenges.filter(c => c.isActive).length;
+      document.getElementById('stat-total').textContent  = total;
+      document.getElementById('stat-active').textContent = active;
+      document.getElementById('stat-draft').textContent  = total - active;
+    }
+
+    // ── Render list ───────────────────────────────────────────────────────────
+    function renderChallenges() {
+      const container = document.getElementById('challenges-list');
+      if (!allChallenges.length) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">🧠</div>
+            <div class="empty-state-title">No Challenges Yet</div>
+            <div style="margin-bottom:1.5rem;">Create your first Paragraph Recall challenge for students.</div>
+            <button class="btn btn-primary" onclick="document.getElementById('btn-new-challenge').click()">+ Create First Challenge</button>
+          </div>`;
+        return;
+      }
+      container.innerHTML = allChallenges.map(c => `
+        <div class="pr-card">
+          <div class="pr-card-header">
+            <div>
+              <div class="pr-card-title">${escHtml(c.title)}</div>
+              ${c.description ? `<div style="font-size:0.82rem;color:var(--text-muted);margin-top:0.25rem;">${escHtml(c.description)}</div>` : ''}
+            </div>
+            <span class="badge badge-filled ${c.isActive ? 'badge-green' : 'badge-muted'}" style="white-space:nowrap;">
+              ${c.isActive ? '● Active' : '○ Draft'}
+            </span>
+          </div>
+          <div class="pr-card-meta">
+            <span>📖 Read: <strong>${c.readDuration}s</strong></span>
+            <span>✍️ Write: <strong>${c.writeDuration}s</strong></span>
+            <span>📝 ~${wordCount(c.paragraph || '')} words</span>
+          </div>
+          <div class="pr-paragraph-preview">${escHtml(c.paragraph || '')}</div>
+          <div class="pr-actions">
+            <button class="btn btn-ghost btn-sm" onclick="openEdit('${c.id}')">✏️ Edit</button>
+            <button class="btn ${c.isActive ? 'btn-ghost' : 'btn-blue'} btn-sm" onclick="toggleActive('${c.id}')">
+              ${c.isActive ? 'Deactivate' : 'Activate'}
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="deleteChallenge('${c.id}')" style="color:var(--primary-red);border-color:var(--primary-red);">🗑 Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function wordCount(text) {
+      return text.trim() ? text.trim().split(/\s+/).length : 0;
+    }
+
+    function escHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ── Load ──────────────────────────────────────────────────────────────────
+    async function loadChallenges() {
+      try {
+        allChallenges = await api.get('/paragraph-recall');
+        updateStats();
+        renderChallenges();
+      } catch (e) {
+        showAlert(e.message);
+      }
+    }
+
+    // ── Modal helpers ─────────────────────────────────────────────────────────
+    const modal  = document.getElementById('challenge-modal');
+
+    function resetForm() {
+      document.getElementById('challenge-form').reset();
+      document.getElementById('challenge-id').value = '';
+      document.getElementById('form-error').style.display = 'none';
+      document.getElementById('modal-title').textContent = 'New Challenge';
+      document.getElementById('form-submit-btn').textContent = 'Create Challenge';
+      document.getElementById('ch-write-duration').value = '540';
+      wcEl.textContent = '0 words · 0 characters';
+    }
+
+    function closeModal() {
+      modal.classList.remove('active');
+      resetForm();
+    }
+
+    document.getElementById('btn-new-challenge').addEventListener('click', () => {
+      resetForm();
+      modal.classList.add('active');
+    });
+    document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+    document.getElementById('modal-cancel').addEventListener('click', closeModal);
+
+    // ── Edit ──────────────────────────────────────────────────────────────────
+    window.openEdit = (id) => {
+      const c = allChallenges.find(x => x.id === id);
+      if (!c) return;
+      document.getElementById('challenge-id').value      = c.id;
+      document.getElementById('ch-title').value          = c.title;
+      document.getElementById('ch-description').value   = c.description || '';
+      document.getElementById('ch-paragraph').value     = c.paragraph || '';
+      document.getElementById('ch-read-duration').value = c.readDuration;
+      document.getElementById('ch-write-duration').value= c.writeDuration;
+      document.getElementById('ch-is-active').checked   = c.isActive;
+      // update word count
+      const text  = (c.paragraph || '').trim();
+      const words = text ? text.split(/\s+/).length : 0;
+      wcEl.textContent = `${words} words · ${(c.paragraph || '').length} characters`;
+      document.getElementById('modal-title').textContent       = 'Edit Challenge';
+      document.getElementById('form-submit-btn').textContent   = 'Save Changes';
+      document.getElementById('form-error').style.display      = 'none';
+      modal.classList.add('active');
+    };
+
+    // ── Toggle active ─────────────────────────────────────────────────────────
+    window.toggleActive = async (id) => {
+      try {
+        await api.patch(`/paragraph-recall/${id}/activate`, {});
+        showAlert('Challenge status updated.', 'success');
+        loadChallenges();
+      } catch (e) { showAlert(e.message); }
+    };
+
+    // ── Delete ────────────────────────────────────────────────────────────────
+    window.deleteChallenge = async (id) => {
+      if (!confirm('Delete this challenge? This cannot be undone.')) return;
+      try {
+        await api.delete(`/paragraph-recall/${id}`);
+        showAlert('Challenge deleted.', 'success');
+        loadChallenges();
+      } catch (e) { showAlert(e.message); }
+    };
+
+    // ── Form submit ───────────────────────────────────────────────────────────
+    document.getElementById('challenge-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl  = document.getElementById('form-error');
+      const subBtn = document.getElementById('form-submit-btn');
+      errEl.style.display = 'none';
+      subBtn.disabled = true;
+      subBtn.textContent = 'Saving…';
+
+      const id   = document.getElementById('challenge-id').value;
+      const body = {
+        title:         document.getElementById('ch-title').value.trim(),
+        description:   document.getElementById('ch-description').value.trim(),
+        paragraph:     document.getElementById('ch-paragraph').value.trim(),
+        readDuration:  parseInt(document.getElementById('ch-read-duration').value),
+        writeDuration: parseInt(document.getElementById('ch-write-duration').value),
+        isActive:      document.getElementById('ch-is-active').checked,
+      };
+
+      if (!body.paragraph) {
+        errEl.textContent = 'Paragraph text is required.';
+        errEl.style.display = 'block';
+        subBtn.disabled = false;
+        subBtn.textContent = id ? 'Save Changes' : 'Create Challenge';
+        return;
+      }
+
+      try {
+        if (id) {
+          await api.put(`/paragraph-recall/${id}`, body);
+          showAlert('Challenge updated.', 'success');
+        } else {
+          await api.post('/paragraph-recall', body);
+          showAlert('Challenge created!', 'success');
+        }
+        closeModal();
+        loadChallenges();
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+      } finally {
+        subBtn.disabled = false;
+        subBtn.textContent = id ? 'Save Changes' : 'Create Challenge';
+      }
+    });
+
+    // Close modal on outside click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    loadChallenges();
+  </script>
+</body>
+</html>

@@ -29,8 +29,20 @@
           <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
         </div>
 
+        <!-- Test Attempts -->
+        <h2 style="font-size:1.1rem;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:1rem;font-family:'Archivo Black',sans-serif;">
+          📝 Test Attempts
+        </h2>
         <div id="history-content">
           <div style="color:var(--text-muted);">Loading history…</div>
+        </div>
+
+        <!-- Paragraph Recall Attempts -->
+        <h2 style="font-size:1.1rem;text-transform:uppercase;letter-spacing:0.06em;margin-top:2.5rem;margin-bottom:1rem;font-family:'Archivo Black',sans-serif;">
+          🧠 Paragraph Recall
+        </h2>
+        <div id="recall-history-content">
+          <div style="color:var(--text-muted);">Loading recall history…</div>
         </div>
       </main>
     </div>
@@ -46,6 +58,7 @@
     const profile = await requireAuth();
     initSidebar({ role: profile.role, activePage: 'history', profile });
 
+    // ── Test Attempts ─────────────────────────────────────────────────────────
     async function loadHistory() {
       const container = document.getElementById('history-content');
       try {
@@ -104,7 +117,64 @@
       }
     }
 
+    // ── Paragraph Recall Attempts ─────────────────────────────────────────────
+    async function loadRecallHistory() {
+      const container = document.getElementById('recall-history-content');
+      try {
+        const attempts = await api.get('/paragraph-recall/attempts/me');
+        if (!attempts.length) {
+          container.innerHTML = `
+            <div class="alert alert-info">No Paragraph Recall attempts yet.</div>
+            <a href="/paragraph-recall.html" class="btn btn-blue" style="margin-top:1rem;">Try a Challenge →</a>
+          `;
+          return;
+        }
+
+        function scoreColor(s) {
+          if (s >= 80) return 'color:#22c55e;';
+          if (s >= 60) return 'color:var(--primary-yellow);';
+          if (s >= 40) return 'color:#f97316;';
+          return 'color:var(--primary-red);';
+        }
+
+        container.innerHTML = `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Challenge</th>
+                  <th>Score</th>
+                  <th>Model</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${attempts.map((a, i) => {
+                  const date = a.submittedAt
+                    ? new Date(a.submittedAt._seconds ? a.submittedAt._seconds * 1000 : a.submittedAt).toLocaleDateString()
+                    : '—';
+                  return `
+                    <tr>
+                      <td>${i + 1}</td>
+                      <td><strong>🧠 ${a.challengeTitle}</strong></td>
+                      <td style="font-family:'Archivo Black',sans-serif;${scoreColor(a.score)}">${a.score}/100</td>
+                      <td style="font-size:0.78rem;color:var(--text-muted);">${a.model || '—'}</td>
+                      <td>${date}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } catch (e) {
+        container.innerHTML = `<div class="alert alert-error">${e.message}</div>`;
+      }
+    }
+
     loadHistory();
+    loadRecallHistory();
   </script>
 </body>
 </html>

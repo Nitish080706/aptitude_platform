@@ -19,6 +19,7 @@ from routers import (
     attempts,
     leaderboard,
     admin_dashboard,
+    paragraph_recall,
 )
 
 # ─── App Init ─────────────────────────────────────────────────────────────────
@@ -59,6 +60,7 @@ app.include_router(tests.router)
 app.include_router(attempts.router)
 app.include_router(leaderboard.router)
 app.include_router(admin_dashboard.router)
+app.include_router(paragraph_recall.router)
 
 
 @app.get("/", tags=["Health"])

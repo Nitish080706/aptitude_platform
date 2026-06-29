@@ -10,19 +10,21 @@
  */
 
 const USER_NAV = [
-  { id: 'dashboard',   label: 'Dashboard',     href: '/dashboard.html',   icon: 'square'   },
-  { id: 'topics',      label: 'Browse Topics',  href: '/topics.html',      icon: 'circle'   },
-  { id: 'history',     label: 'My History',     href: '/history.html',     icon: 'bars'     },
-  { id: 'leaderboard', label: 'Leaderboard',    href: '/leaderboard.html', icon: 'diamond'  },
+  { id: 'dashboard',        label: 'Dashboard',          href: '/dashboard.html',              icon: 'square'   },
+  { id: 'topics',           label: 'Browse Topics',       href: '/topics.html',                 icon: 'circle'   },
+  { id: 'paragraph_recall', label: 'Paragraph Recall',    href: '/paragraph-recall.html',       icon: 'brain'    },
+  { id: 'history',          label: 'My History',          href: '/history.html',                icon: 'bars'     },
+  { id: 'leaderboard',      label: 'Leaderboard',         href: '/leaderboard.html',            icon: 'diamond'  },
 ];
 
 const ADMIN_NAV = [
-  { id: 'dashboard',   label: 'Dashboard',      href: '/admin/dashboard.html', icon: 'square'   },
-  { id: 'topics',      label: 'Manage Topics',  href: '/admin/topics.html',    icon: 'circle'   },
-  { id: 'questions',   label: 'Questions',      href: '/admin/questions.html', icon: 'triangle' },
-  { id: 'test_questions', label: 'Test Questions', href: '/admin/question_for_test.html', icon: 'triangle' },
-  { id: 'tests',       label: 'Tests',          href: '/admin/tests.html',     icon: 'bars'     },
-  { id: 'notes',       label: 'Notes',          href: '/admin/notes.html',     icon: 'diamond'  },
+  { id: 'dashboard',        label: 'Dashboard',           href: '/admin/dashboard.html',             icon: 'square'   },
+  { id: 'topics',           label: 'Manage Topics',        href: '/admin/topics.html',                icon: 'circle'   },
+  { id: 'questions',        label: 'Questions',            href: '/admin/questions.html',             icon: 'triangle' },
+  { id: 'test_questions',   label: 'Test Questions',       href: '/admin/question_for_test.html',     icon: 'triangle' },
+  { id: 'tests',            label: 'Tests',                href: '/admin/tests.html',                 icon: 'bars'     },
+  { id: 'paragraph_recall', label: 'Paragraph Recall',     href: '/admin/paragraph-recall.html',      icon: 'brain'    },
+  { id: 'notes',            label: 'Notes',                href: '/admin/notes.html',                 icon: 'diamond'  },
 ];
 
 function iconHTML(type) {
@@ -32,6 +34,7 @@ function iconHTML(type) {
     case 'triangle': return `<span class="icon-triangle"></span>`;
     case 'bars':     return `<span class="icon-bar-group"><span></span><span></span><span></span></span>`;
     case 'diamond':  return `<span class="icon-diamond"></span>`;
+    case 'brain':    return `<span style="font-size:0.85em;">🧠</span>`;
     default:         return `<span class="icon-square"></span>`;
   }
 }
